@@ -1,0 +1,74 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: application.properties
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${application.spring.datasource.url}
+    username: ${application.spring.datasource.username}
+    password: ${application.spring.datasource.password}
+
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  cloud:
+    aws:
+      credentials:
+        accessKey: ${spring.cloud.aws.credentials.access-key}
+        secretKey: ${spring.cloud.aws.credentials.secret-key}
+      region:
+        static: ap-northeast-2
+        auto: false
+      stack:
+        auto: false
+
+
+  data:
+    redis:
+      port: ${spring.data.redis.port}
+      host: ${spring.data.redis.host}
+
+
+  api:
+    url: ${application.spring.api.url}
+    key: ${application.spring.api.key}
+
+
+jwt:
+  secret: ${application.jwt.secret}
+  secret_refresh: ${application.jwt.secret_refresh}
+
+management:
+  server:
+    port: 9292
+  info:
+    java:
+      enabled: true
+    os:
+      enabled: true
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+info:
+  app:
+    name: drugdrop
+    company: bk
