@@ -52,4 +52,7 @@ public class Member extends BaseEntity {
     }
     public void add100Point(){ this.point += 100;}
     public void sub200point(){ this.point -= 200;}
+    public void updateNotificationSetting(NotificationSetting setting){
+        this.notificationSetting = setting;
+    }
 }

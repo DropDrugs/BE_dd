@@ -14,6 +14,7 @@ public enum ErrorCode {
     SECURITY_CONTEXT_NOT_FOUND(HttpStatus.NOT_FOUND, "Security Context 에 인증 정보가 없습니다."),
     EXIST_MEMBER(HttpStatus.CONFLICT, "이미 가입되어 있는 유저입니다."),
     LOGOUTED_MEMBER(HttpStatus.CONFLICT, "로그아웃 된 사용자입니다."),
+    EXIST_MEMBER_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
 
 
     // Token 예외
