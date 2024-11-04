@@ -89,6 +89,27 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+    public void changeMemberCharacter(Long memberId, Integer charId){
+        Member member = getMemberOrThrow(memberId);
+        if(!hasCharacter(member, charId)){
+            throw new CustomException(ErrorCode.NOT_FOUND_CHARACTER);
+        }
+        member.setSelectedChar(charId);
+        memberRepository.save(member);
+    }
+
+    public boolean hasCharacter(Member member, int charId) {
+        int characterBit = 1 << charId;
+        return (member.getOwnedChars() & characterBit) != 0;
+    }
+
+    public void buyMemberCharacter(Long memberId, Integer charId){
+        Member member = getMemberOrThrow(memberId);
+        member.setOwnedChars(member.getOwnedChars() | (1 << charId));
+        member.subPoint(200);
+        memberRepository.save(member);
+    }
+
     private Member getMemberOrThrow(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));

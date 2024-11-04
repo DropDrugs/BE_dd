@@ -47,11 +47,12 @@ public class Member extends BaseEntity {
 
     public void setProviderAccessToken(String token){ this.providerAccessToken = token; }
     public void setSelectedChar(Integer selectedChar){ this.selectedChar = selectedChar; }
+    public void setOwnedChars(Integer ownedChars){ this.ownedChars = ownedChars; }
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }
-    public void add100Point(){ this.point += 100;}
-    public void sub200point(){ this.point -= 200;}
+    public void addPoint(int pt){ this.point += pt;}
+    public void subPoint(int pt){ this.point -= pt;}
     public void updateNotificationSetting(NotificationSetting setting){
         this.notificationSetting = setting;
     }
