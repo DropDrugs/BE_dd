@@ -12,6 +12,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 
 
@@ -48,8 +50,20 @@ public class MemberController {
     }
 
     @PatchMapping("/notification")
-    public ResponseEntity<Void> changeIsExpDateNotificationEnabled(@RequestBody @Valid NotificationSettingRequest request){
+    public ResponseEntity<Void> changeNotificationSetting(@RequestBody @Valid NotificationSettingRequest request){
         memberService.updateNotificationSetting(SecurityUtil.getCurrentMemberId(), request);
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @PatchMapping("/character/{charId}")
+    public ResponseEntity<Void> changeMemberCharacter(@PathVariable @Min(0) @Max(31) Integer charId){
+        memberService.changeMemberCharacter(SecurityUtil.getCurrentMemberId(), charId);
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @PostMapping("/character/{charId}")
+    public ResponseEntity<Void> buyMemberCharacter(@PathVariable @Min(0) @Max(31) Integer charId){
+        memberService.buyMemberCharacter(SecurityUtil.getCurrentMemberId(), charId);
         return new ResponseEntity(HttpStatus.OK);
     }
 }
