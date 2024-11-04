@@ -20,7 +20,7 @@ public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "member_id")
     private Long id;
 
     private String password;
@@ -32,11 +32,12 @@ public class Member extends BaseEntity {
     private String providerAccessToken;
     private String oauthId;
 
-    @Column(unique = true)
     private String nickname;
     private String email;
     @Builder.Default
-    private Integer character = 0;
+    private Integer selectedChar = 0;
+    @Builder.Default
+    private Integer ownedChars = 1; // bitwise
     @Builder.Default
     private int point = 0;
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -45,7 +46,7 @@ public class Member extends BaseEntity {
     private NotificationSetting notificationSetting = new NotificationSetting();
 
     public void setProviderAccessToken(String token){ this.providerAccessToken = token; }
-    public void setCharacter(Integer character){ this.character = character; }
+    public void setSelectedChar(Integer selectedChar){ this.selectedChar = selectedChar; }
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }

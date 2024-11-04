@@ -23,6 +23,7 @@ public enum ErrorCode {
     UNAUTHORIZED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "Refresh Token이 유효하지 않습니다."),
     ID_TOKEN_INVALID(HttpStatus.UNPROCESSABLE_ENTITY, "ID Token 값이 잘못되었습니다. OAUTH 로그인을 다시 시도해보세요."),
     QUIT_ERROR(HttpStatus.BAD_REQUEST, "OAUTH 탈퇴 과정 중 에러가 발생했습니다."),
+    LOGIN_TOKEN_ERROR(HttpStatus.BAD_REQUEST, "OAUTH 토큰 에러"),
 
     // FCM Messaging 예외
     FCM_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "FCM토큰이 null입니다."),
