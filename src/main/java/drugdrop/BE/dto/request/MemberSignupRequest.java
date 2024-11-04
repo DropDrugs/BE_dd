@@ -14,12 +14,23 @@ import javax.validation.constraints.Pattern;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class MemberLoginRequest {
+public class MemberSignupRequest {
 
     @NotBlank // null, "", " "
     private String email;
-    @NotBlank
+    @Pattern(regexp = "[a-zA-Z0-9!@#$%^&*()_+]{8}", message = "비밀번호는 영어 대/소문자, 숫자, 특수문자의 조합 8글자를 사용하세요.")
     private String password;
+    @NotBlank
+    private String name;
+
+    public Member toMember(PasswordEncoder passwordEncoder) {
+        return Member.builder()
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .authority(Authority.ROLE_USER)
+                .nickname(name)
+                .build();
+    }
 
     public UsernamePasswordAuthenticationToken toAuthentication() {
         return new UsernamePasswordAuthenticationToken(email, password);
