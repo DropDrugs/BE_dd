@@ -1,5 +1,6 @@
 package drugdrop.BE.service;
 
+import com.google.firebase.auth.FirebaseToken;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.common.jwt.TokenDto;
@@ -39,6 +40,19 @@ public class AuthService {
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
 
+    public TokenDto googleLogin(OAuthLoginRequest request){
+        return makeTokenDto(findOrCreateUserFromOAuth(new GoogleInfoResponse(request.getAccessToken(), request.getIdToken())));
+    }
+
+    public TokenDto googleLoginFirebase(String accessToken, FirebaseToken firebaseToken){
+        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken));
+    }
+
+    public TokenDto getGoogleAccessToken(String authCode){
+        System.out.println("\n==== Auth Code:"+authCode+"\n");
+        OAuthInfoResponse oAuthInfoResponse = requestOAuthInfoService.request(new GoogleLoginParams(authCode));
+        return makeTokenDto(findOrCreateUserFromOAuth(oAuthInfoResponse));
+    }
 
     private TokenDto makeTokenDto(Map<String, Object> idAndIsNew){
         Long userId = (Long) idAndIsNew.get("userId");
@@ -48,7 +62,25 @@ public class AuthService {
         return token;
     }
 
-    private Map<String, Object> findOrCreateUser(OAuthInfoResponse oAuthInfoResponse) {
+    private Map<String, Object> findOrCreateUserFromFirebase(String accessToken, FirebaseToken firebaseToken) {
+
+        Map<String, Object> idAndIfNew = new HashMap<>();
+        Boolean isNewUser = false;
+        Member member = memberRepository.findByOauthId(firebaseToken.getUid());
+        if (member == null){
+            member = newUser(firebaseToken, firebaseToken.getIssuer());
+            isNewUser = true;
+        }
+        member.setProviderAccessToken(accessToken);
+        memberRepository.save(member);
+
+        Long userId = member.getId();
+        idAndIfNew.put("userId", userId);
+        idAndIfNew.put("isNewUser", isNewUser);
+        return idAndIfNew;
+    }
+
+    private Map<String, Object> findOrCreateUserFromOAuth(OAuthInfoResponse oAuthInfoResponse) {
         OAuthUserProfile profile = tokenProvider.parseIdToken(oAuthInfoResponse.getIdToken());
 
         Map<String, Object> idAndIfNew = new HashMap<>();
@@ -73,6 +105,16 @@ public class AuthService {
                 .nickname(profile.getNickname())
                 .oauthProvider(provider)
                 .oauthId(profile.getOauthId())
+                .build();
+        return memberRepository.save(member);
+    }
+
+    private Member newUser(FirebaseToken token, String iss) {
+        Member member = Member.builder()
+                .email(token.getEmail())
+                .nickname(token.getName())
+                .oauthProvider(OAuthProvider.valueOf(iss))
+                .oauthId(token.getUid())
                 .build();
         return memberRepository.save(member);
     }
