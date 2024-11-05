@@ -4,6 +4,7 @@ import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.domain.NotificationSetting;
 import drugdrop.BE.domain.Member;
+import drugdrop.BE.domain.TransactionType;
 import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
 import drugdrop.BE.dto.response.MemberEmailResponse;
@@ -26,6 +27,8 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final NotificationSettingRepository notificationSettingRepository;
+    private final PointService pointService;
+    private final Integer characterCost = 200;
 
     @Transactional(readOnly = true)
     public void checkNicknameDuplicate(String nickname) {
@@ -105,9 +108,13 @@ public class MemberService {
 
     public void buyMemberCharacter(Long memberId, Integer charId){
         Member member = getMemberOrThrow(memberId);
+        if(member.getPoint() < characterCost){
+            throw new CustomException(ErrorCode.NOT_ENOUGH_POINTS);
+        }
         member.setOwnedChars(member.getOwnedChars() | (1 << charId));
-        member.subPoint(200);
+        member.subPoint(characterCost);
         memberRepository.save(member);
+        pointService.recordPointTransaction(member, TransactionType.CHARACTER_PURCHASE, -200);
     }
 
     private Member getMemberOrThrow(Long memberId) {

@@ -16,6 +16,7 @@ public enum ErrorCode {
     LOGOUTED_MEMBER(HttpStatus.CONFLICT, "로그아웃 된 사용자입니다."),
     EXIST_MEMBER_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     NOT_FOUND_CHARACTER(HttpStatus.NOT_FOUND, "해당 캐릭터를 보유하고 있지 않습니다."),
+    NOT_ENOUGH_POINTS(HttpStatus.CONFLICT, "유저의 포인트가 부족합니다."),
 
 
     // Token 예외
