@@ -11,6 +11,7 @@ import drugdrop.BE.common.oauth.RequestOAuthInfoService;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
 import drugdrop.BE.common.oauth.platform.google.GoogleInfoResponse;
 import drugdrop.BE.common.oauth.platform.google.GoogleLoginParams;
+import drugdrop.BE.common.oauth.platform.kakao.KakaoInfoResponse;
 import drugdrop.BE.domain.Member;
 import drugdrop.BE.dto.request.MemberSignupRequest;
 import drugdrop.BE.dto.request.OAuthLoginRequest;
@@ -40,9 +41,6 @@ public class AuthService {
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
 
-    public TokenDto googleLogin(OAuthLoginRequest request){
-        return makeTokenDto(findOrCreateUserFromOAuth(new GoogleInfoResponse(request.getAccessToken(), request.getIdToken())));
-    }
 
     public TokenDto googleLoginFirebase(String accessToken, FirebaseToken firebaseToken){
         return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken));
@@ -52,6 +50,10 @@ public class AuthService {
         System.out.println("\n==== Auth Code:"+authCode+"\n");
         OAuthInfoResponse oAuthInfoResponse = requestOAuthInfoService.request(new GoogleLoginParams(authCode));
         return makeTokenDto(findOrCreateUserFromOAuth(oAuthInfoResponse));
+    }
+
+    public TokenDto kakaoLogin(OAuthLoginRequest request){
+        return makeTokenDto(findOrCreateUserFromOAuth(new KakaoInfoResponse(request.getAccessToken(), request.getAccessToken())));
     }
 
     private TokenDto makeTokenDto(Map<String, Object> idAndIsNew){
@@ -81,7 +83,8 @@ public class AuthService {
     }
 
     private Map<String, Object> findOrCreateUserFromOAuth(OAuthInfoResponse oAuthInfoResponse) {
-        OAuthUserProfile profile = tokenProvider.parseIdToken(oAuthInfoResponse.getIdToken());
+        OAuthUserProfile profile = requestOAuthInfoService.getUserInfo(oAuthInfoResponse.getAccessToken(),
+                OAuthProvider.KAKAO);
 
         Map<String, Object> idAndIfNew = new HashMap<>();
         Boolean isNewUser = false;

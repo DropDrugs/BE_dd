@@ -5,6 +5,7 @@ import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.common.oauth.OAuthApiClient;
 import drugdrop.BE.common.oauth.OAuthLoginParams;
 import drugdrop.BE.common.oauth.OAuthProvider;
+import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -66,7 +67,7 @@ public class GoogleApiClient implements OAuthApiClient { // 구글 로그인 토
         return ret;
     }
 
-    @Override
+
     public void quit(String accessToken){ // 구글에서 발급한 accessToken revoke 신청
         String url = authUrl + "/revoke?token=" + accessToken;
 
@@ -79,5 +80,10 @@ public class GoogleApiClient implements OAuthApiClient { // 구글 로그인 토
         if(response.getStatusCode() != HttpStatus.OK){
             throw new CustomException(ErrorCode.QUIT_ERROR);
         }
+    }
+
+    @Override
+    public OAuthUserProfile getUserInfo(String accessToken){
+        return new OAuthUserProfile();
     }
 }
