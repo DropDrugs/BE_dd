@@ -90,6 +90,26 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("login/kakao")
+    public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request)
+    { // auth code
+//        FirebaseToken firebaseToken = null;
+//        try{
+//            firebaseToken = this.firebaseAuth.verifyIdToken(request.getIdToken());
+//        } catch(Exception e){
+//            log.info(e.toString());
+//            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
+//        }
+
+//        log.info("user id: {}", firebaseToken.getUid()); // sub
+//        log.info("email: {}", firebaseToken.getEmail());
+
+//        TokenDto response = authService.kakaoLogin(request.getAccessToken(), firebaseToken);
+        TokenDto response = authService.kakaoLogin(request);
+//        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/redirect/google") // 백엔드 자체 테스트용
     public ResponseEntity<TokenDto> googleRedirect(@RequestParam("code") String authCode){
         log.info("\n  AuthCode:" + authCode);

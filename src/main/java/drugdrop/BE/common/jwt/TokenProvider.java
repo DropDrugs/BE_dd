@@ -242,7 +242,6 @@ public class TokenProvider {
                 return OAuthUserProfile.builder()
                             .email(payload.getEmail())
                             .nickname(payload.get("name").toString())
-//                            .image(payload.get("picture").toString())
                             .oauthId(payload.getSubject())
                             .build();
             }
