@@ -20,7 +20,8 @@ public class MemberSignupRequest {
     @NotBlank // null, "", " "
     @Email
     private String email;
-    @Pattern(regexp = "[a-zA-Z0-9!@#$%^&*()_+]{8}", message = "비밀번호는 영어 대/소문자, 숫자, 특수문자의 조합 8글자를 사용하세요.")
+    @Pattern(regexp = "(?=.*[a-zA-Z])[a-zA-Z0-9!@#$%^&*()_+=?.,<>-]{8,}",
+            message = "비밀번호는 숫자, 특수문자, 알파벳 대/소문자(1개 이상)의 조합 8글자 이상이어야합니다.")
     private String password;
     @NotBlank
     private String name;
