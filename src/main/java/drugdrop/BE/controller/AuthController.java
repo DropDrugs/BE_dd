@@ -93,20 +93,19 @@ public class AuthController {
     @PostMapping("login/kakao")
     public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request)
     { // auth code
-//        FirebaseToken firebaseToken = null;
-//        try{
-//            firebaseToken = this.firebaseAuth.verifyIdToken(request.getIdToken());
-//        } catch(Exception e){
-//            log.info(e.toString());
-//            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
-//        }
+        FirebaseToken firebaseToken = null;
+        try{
+            firebaseToken = this.firebaseAuth.verifyIdToken(request.getIdToken());
+        } catch(Exception e){
+            log.info(e.toString());
+            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
+        }
 
-//        log.info("user id: {}", firebaseToken.getUid()); // sub
-//        log.info("email: {}", firebaseToken.getEmail());
+        log.info("user id: {}", firebaseToken.getUid()); // sub
+        log.info("email: {}", firebaseToken.getEmail());
 
-//        TokenDto response = authService.kakaoLogin(request.getAccessToken(), firebaseToken);
         TokenDto response = authService.kakaoLogin(request);
-//        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
