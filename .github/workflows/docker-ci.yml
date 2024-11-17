@@ -62,6 +62,13 @@ jobs:
           echo "${{ secrets.APPLICATION_PROPERTIES }}" >> ./application.properties
         shell: bash
 
+      - name: make (apple) p8key file
+        run: |
+          cd ./src/main/resources
+          touch ./p8_key.txt
+          
+          echo "${{ secrets.P8_KEY }}" >> ./p8_key.txt
+        shell: bash
 
       # 2. Spring Boot 애플리케이션 빌드
       - name: Build with Gradle

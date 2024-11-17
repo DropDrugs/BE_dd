@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -72,38 +73,24 @@ public class AuthController {
     }
 
     @PostMapping("login/google")
-    public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid OAuthLoginRequest request)
-            { // auth code
-        FirebaseToken firebaseToken = null;
-        try{
-            firebaseToken = this.firebaseAuth.verifyIdToken(request.getIdToken());
-        } catch(Exception e){
-            log.info(e.toString());
-            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
-        }
-
-        log.info("user id: {}", firebaseToken.getUid()); // sub
-        log.info("email: {}", firebaseToken.getEmail());
-
+    public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid OAuthLoginRequest request){
+        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
         TokenDto response = authService.googleLoginFirebase(request.getAccessToken(), firebaseToken);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("login/apple")
+    public ResponseEntity<TokenDto> appleLogin(@RequestBody @Valid OAuthLoginRequest request){
+        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
+        TokenDto response = authService.appleLogin(request.getAccessToken(), firebaseToken);
+        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("login/kakao")
-    public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request)
-    { // auth code
-        FirebaseToken firebaseToken = null;
-        try{
-            firebaseToken = this.firebaseAuth.verifyIdToken(request.getIdToken());
-        } catch(Exception e){
-            log.info(e.toString());
-            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
-        }
-
-        log.info("user id: {}", firebaseToken.getUid()); // sub
-        log.info("email: {}", firebaseToken.getEmail());
-
+    public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request){
+        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
         TokenDto response = authService.kakaoLogin(request);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
@@ -128,9 +115,23 @@ public class AuthController {
     }
 
     @PostMapping("/quit")
-    public ResponseEntity<Void> quit(@RequestBody Map<String, String> accessToken){
+    public ResponseEntity<Void> quit(@RequestBody Map<String, String> accessToken) throws IOException {
         Long memberId = authService.quit(accessToken.get("accessToken"));
         fcmTokenService.deleteToken(memberId);
         return new ResponseEntity(HttpStatus.OK);
+    }
+
+    private FirebaseToken checkFirebaseToken(String token) {
+        FirebaseToken firebaseToken = null; // Firebase Id Token
+        try{
+            firebaseToken = this.firebaseAuth.verifyIdToken(token);
+        } catch(Exception e){
+            log.info(e.toString());
+            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
+        }
+
+        log.info("user id: {}", firebaseToken.getUid()); // sub
+        log.info("email: {}", firebaseToken.getEmail());
+        return firebaseToken;
     }
 }

@@ -1,5 +1,5 @@
 package drugdrop.BE.common.oauth;
 
 public enum OAuthProvider {
-    GOOGLE, KAKAO
+    GOOGLE, KAKAO, APPLE, NONE
 }

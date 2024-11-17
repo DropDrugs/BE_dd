@@ -14,8 +14,6 @@ import javax.validation.constraints.NotBlank;
 public class OAuthLoginRequest {
     @NotBlank // null, "", " "
     private String accessToken;
-//    @NotBlank(message = "FCM토큰 값이 필요합니다.")
+    @NotBlank(message = "FCM토큰 값이 필요합니다.")
     private String fcmToken;
-    @NotBlank
-    private String idToken;
 }

@@ -51,6 +51,7 @@ public class Member extends BaseEntity {
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }
+    public void setDefaultOauthProvider() { this.oauthProvider = oauthProvider.NONE; }
     public void addPoint(int pt){ this.point += pt;}
     public void subPoint(int pt){ this.point -= pt;}
     public void updateNotificationSetting(NotificationSetting setting){
