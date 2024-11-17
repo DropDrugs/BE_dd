@@ -17,11 +17,11 @@ public class FCMTokenService {
 
     private final StringRedisTemplate tokenRedisTemplate;
 
-    public void sendNotification(String title, String content, Long userId, String extraInfo) {
-        if(!hasKey(userId)){
+    public void sendNotification(String title, String content, Long memberId, String extraInfo) {
+        if(!hasKey(memberId)){
             throw new CustomException(ErrorCode.FCM_TOKEN_INVALID);
         }
-        String token = getToken(userId);
+        String token = getToken(memberId);
         Notification fcmNotification = Notification.builder()
                 .setTitle(title)
                 .setBody(content)
@@ -30,27 +30,27 @@ public class FCMTokenService {
         Message message = Message.builder()
                 .setToken(token)
                 .setNotification(fcmNotification)
-                .putData("userId", String.valueOf(userId))
+                .putData("memberId", String.valueOf(memberId))
                 .putData("extraInfo", extraInfo)
                 .build();
         sendMessage(message);
     }
 
-    public void saveToken(Long userId, String FCMToken){
+    public void saveToken(Long memberId, String FCMToken){
         tokenRedisTemplate.opsForValue()
-                .set("_"+String.valueOf(userId), FCMToken);
+                .set("_"+String.valueOf(memberId), FCMToken);
     }
 
-    private String getToken(Long userId) {
-        return tokenRedisTemplate.opsForValue().get("_"+String.valueOf(userId));
+    private String getToken(Long memberId) {
+        return tokenRedisTemplate.opsForValue().get("_"+String.valueOf(memberId));
     }
 
-    public void deleteToken(Long userId) {
-        tokenRedisTemplate.delete(String.valueOf("_"+userId));
+    public void deleteToken(Long memberId) {
+        tokenRedisTemplate.delete(String.valueOf("_"+memberId));
     }
 
-    public boolean hasKey(Long userId){
-        return tokenRedisTemplate.hasKey(String.valueOf("_"+userId));
+    public boolean hasKey(Long memberId){
+        return tokenRedisTemplate.hasKey(String.valueOf("_"+memberId));
     }
 
     public void sendMessage(Message message) {
