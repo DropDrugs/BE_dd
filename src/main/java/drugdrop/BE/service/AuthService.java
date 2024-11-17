@@ -26,6 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,9 +42,12 @@ public class AuthService {
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
 
+    public TokenDto appleLogin(String accessToken, FirebaseToken firebaseToken){
+        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken, OAuthProvider.APPLE));
+    }
 
     public TokenDto googleLoginFirebase(String accessToken, FirebaseToken firebaseToken){
-        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken));
+        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken, OAuthProvider.GOOGLE));
     }
 
     public TokenDto getGoogleAccessToken(String authCode){
@@ -64,13 +68,14 @@ public class AuthService {
         return token;
     }
 
-    private Map<String, Object> findOrCreateUserFromFirebase(String accessToken, FirebaseToken firebaseToken) {
+    private Map<String, Object> findOrCreateUserFromFirebase(String accessToken, FirebaseToken firebaseToken,
+                                                             OAuthProvider provider) {
 
         Map<String, Object> idAndIfNew = new HashMap<>();
         Boolean isNewUser = false;
         Member member = memberRepository.findByOauthId(firebaseToken.getUid());
         if (member == null){
-            member = newUser(firebaseToken, firebaseToken.getIssuer());
+            member = newUser(firebaseToken, provider);
             isNewUser = true;
         }
         member.setProviderAccessToken(accessToken);
@@ -112,11 +117,11 @@ public class AuthService {
         return memberRepository.save(member);
     }
 
-    private Member newUser(FirebaseToken token, String iss) {
+    private Member newUser(FirebaseToken token, OAuthProvider provider) {
         Member member = Member.builder()
                 .email(token.getEmail())
                 .nickname(token.getName())
-                .oauthProvider(OAuthProvider.valueOf(iss))
+                .oauthProvider(provider)
                 .oauthId(token.getUid())
                 .build();
         return memberRepository.save(member);
@@ -128,6 +133,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.EXIST_MEMBER);
         }
         Member member = request.toMember(passwordEncoder);
+        member.setDefaultOauthProvider();
         return memberRepository.save(member).getId();
     }
 
@@ -168,12 +174,19 @@ public class AuthService {
         tokenProvider.deleteRefreshToken(accessToken);
     }
 
-    public Long quit(String accessToken){
+    public Long quit(String accessToken) throws IOException {
         String userId = tokenProvider.parseSubject(accessToken);
         Member member = memberRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
-        if(member.getOauthProvider() == OAuthProvider.GOOGLE){ // 연동 해제
-            requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.GOOGLE);
+
+        // 연동 해제
+        switch(member.getOauthProvider()){
+            case GOOGLE: requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.GOOGLE);
+                break;
+            case KAKAO:  requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
+                break;
+            case APPLE:  requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.APPLE);
+                break;
         }
         tokenProvider.deleteRefreshToken(accessToken);
         memberRepository.delete(member);

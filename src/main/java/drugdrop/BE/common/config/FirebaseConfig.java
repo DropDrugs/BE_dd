@@ -3,6 +3,7 @@ package drugdrop.BE.common.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +14,13 @@ import java.io.InputStream;
 import java.util.List;
 
 @Configuration
-public class FCMConfig {
+public class FirebaseConfig {
 
     @Bean
-    FirebaseMessaging init() throws IOException {
+    FirebaseApp firebaseApp() throws IOException {
         ClassPathResource resource = new ClassPathResource("drug-drop-firebase.json");
-        InputStream refreshToken = resource.getInputStream();
+        InputStream serviceAccount = resource.getInputStream();
+
         FirebaseApp firebaseApp = null;
         List<FirebaseApp> firebaseAppList = FirebaseApp.getApps();
         if(firebaseAppList != null && !firebaseAppList.isEmpty()){
@@ -29,10 +31,20 @@ public class FCMConfig {
             }
         } else {
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(refreshToken))
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .build();
             firebaseApp = FirebaseApp.initializeApp(options);
         }
-        return FirebaseMessaging.getInstance(firebaseApp);
+        return firebaseApp;
+    }
+
+    @Bean
+    public FirebaseAuth getFirebaseAuth() throws IOException {
+        return FirebaseAuth.getInstance(firebaseApp());
+    }
+
+    @Bean
+    public FirebaseMessaging getFirebaseMessaging() throws IOException {
+        return FirebaseMessaging.getInstance(firebaseApp());
     }
 }

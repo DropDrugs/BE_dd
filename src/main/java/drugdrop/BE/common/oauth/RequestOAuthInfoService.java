@@ -3,6 +3,7 @@ package drugdrop.BE.common.oauth;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,7 +25,7 @@ public class RequestOAuthInfoService { // OAuthApiClient 를 사용하는 Servic
         return client.requestAccessToken(params);
     }
 
-    public void quit(String accessToken, OAuthProvider oauthProvider){
+    public void quit(String accessToken, OAuthProvider oauthProvider) throws IOException {
         OAuthApiClient client = clients.get(oauthProvider);
         client.quit(accessToken);
     }

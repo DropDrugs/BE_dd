@@ -41,3 +41,4 @@ application.properties
 *-firebase.json
 gha-creds-*.json
 google-cloud-api.json
+*.txt
