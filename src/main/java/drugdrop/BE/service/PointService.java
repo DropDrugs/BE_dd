@@ -3,6 +3,7 @@ package drugdrop.BE.service;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.domain.Member;
+import drugdrop.BE.domain.Notification;
 import drugdrop.BE.domain.PointTransaction;
 import drugdrop.BE.domain.TransactionType;
 import drugdrop.BE.dto.response.MonthlyDisposalCountResponse;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +30,7 @@ public class PointService {
 
     private final MemberRepository memberRepository;
     private final PointTransactionRepository pointTransactionRepository;
+    private final NotificationService notificationService;
 
     public PointResponse getTotalPoint(Long memberId){
         Member member = getMemberOrThrow(memberId);
@@ -43,6 +44,17 @@ public class PointService {
         member.addPoint(point);
         memberRepository.save(member);
         recordPointTransaction(member, TransactionType.valueOf(type), point);
+        switch(type){
+            case "PHOTO_CERTIFICATION" :
+                sendNotification(member, "폐기사진 인증 리워드 적립", "\uD83E\uDD17");
+                break;
+            case "GENERAL_CERTIFICATION" :
+                sendNotification(member, "폐기 일반 인증 리워드 적립", "\uD83E\uDD17"); //🤗
+                break;
+            case "LOCATION_INQUIRY" :
+                sendNotification(member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
+                break;
+        }
     }
 
     public PointTransactionResponse getPointTransactionHistory(Long memberId){
@@ -84,5 +96,14 @@ public class PointService {
                 .point(point)
                 .build();
         pointTransactionRepository.save(transaction);
+    }
+
+    private void sendNotification(Member member, String title, String message){
+        Notification notification = Notification.builder()
+                .member(member)
+                .title(title)
+                .message(message)
+                .build();
+        notificationService.makeNotification(notification);
     }
 }
