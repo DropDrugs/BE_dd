@@ -6,7 +6,6 @@ import drugdrop.BE.common.oauth.OAuthApiClient;
 import drugdrop.BE.common.oauth.OAuthLoginParams;
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
-import drugdrop.BE.dto.response.IdResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -76,7 +75,7 @@ public class KakaoApiClient implements OAuthApiClient { // Kakao 로그인 토�
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
 
-        ResponseEntity<IdResponse> response = restTemplate.exchange(url, HttpMethod.POST, request,IdResponse.class);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request,String.class);
         if(response.getStatusCode() != HttpStatus.OK){
             throw new CustomException(ErrorCode.QUIT_ERROR);
         }
