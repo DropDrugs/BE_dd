@@ -1,12 +1,7 @@
 package drugdrop.BE.controller;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
-import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
-import drugdrop.BE.common.exception.CustomException;
-import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.common.jwt.TokenDto;
 import drugdrop.BE.dto.request.MemberSignupRequest;
 import drugdrop.BE.dto.request.OAuthLoginRequest;
@@ -14,8 +9,8 @@ import drugdrop.BE.dto.request.MemberLoginRequest;
 import drugdrop.BE.dto.response.IdResponse;
 import drugdrop.BE.service.AuthService;
 import drugdrop.BE.service.FCMTokenService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -23,40 +18,18 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 
 @Validated
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
     private final FCMTokenService fcmTokenService;
-    private final FirebaseApp firebaseApp;
-    private final FirebaseAuth firebaseAuth;
 
-    public AuthController(AuthService authService, FCMTokenService fcmTokenService) {
-        this.authService = authService;
-        this.fcmTokenService = fcmTokenService;
-        ClassPathResource resource = new ClassPathResource("drug-drop-firebase.json");
-
-        GoogleCredentials googleCredentials = null;
-        try {
-            InputStream resourceInputStream = resource.getInputStream();
-            googleCredentials = GoogleCredentials.fromStream(resourceInputStream);
-        } catch (Exception exception) {
-            throw new RuntimeException("Invalid firebase-adminsdk.json");
-        }
-
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(googleCredentials)
-                .build();
-
-        this.firebaseApp = FirebaseApp.initializeApp(options);
-        this.firebaseAuth = FirebaseAuth.getInstance(firebaseApp);
-    }
 
     @PostMapping("/signup/pw")
     public ResponseEntity<IdResponse> signup(@RequestBody @Valid MemberSignupRequest memberSignupRequest) {
@@ -74,23 +47,22 @@ public class AuthController {
 
     @PostMapping("login/google")
     public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid OAuthLoginRequest request){
-        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
-        TokenDto response = authService.googleLoginFirebase(request.getAccessToken(), firebaseToken);
+        FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
+        TokenDto response = authService.googleLoginFirebase(request.getIdToken(), firebaseToken);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/apple")
     public ResponseEntity<TokenDto> appleLogin(@RequestBody @Valid OAuthLoginRequest request){
-        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
-        TokenDto response = authService.appleLogin(request.getAccessToken(), firebaseToken);
+        FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
+        TokenDto response = authService.appleLogin(request.getIdToken(), firebaseToken);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/kakao")
     public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request){
-        FirebaseToken firebaseToken = checkFirebaseToken(request.getFcmToken());
         TokenDto response = authService.kakaoLogin(request);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
@@ -115,23 +87,9 @@ public class AuthController {
     }
 
     @PostMapping("/quit")
-    public ResponseEntity<Void> quit(@RequestBody Map<String, String> accessToken) throws IOException {
-        Long memberId = authService.quit(accessToken.get("accessToken"));
+    public ResponseEntity<Void> quit(@RequestBody Map<String, String> token) throws IOException, FirebaseAuthException {
+        Long memberId = authService.quit(token.get("accessToken"));
         fcmTokenService.deleteToken(memberId);
         return new ResponseEntity(HttpStatus.OK);
-    }
-
-    private FirebaseToken checkFirebaseToken(String token) {
-        FirebaseToken firebaseToken = null; // Firebase Id Token
-        try{
-            firebaseToken = this.firebaseAuth.verifyIdToken(token);
-        } catch(Exception e){
-            log.info(e.toString());
-            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
-        }
-
-        log.info("user id: {}", firebaseToken.getUid()); // sub
-        log.info("email: {}", firebaseToken.getEmail());
-        return firebaseToken;
     }
 }

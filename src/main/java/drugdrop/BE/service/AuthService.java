@@ -1,5 +1,8 @@
 package drugdrop.BE.service;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
@@ -9,7 +12,6 @@ import drugdrop.BE.common.oauth.OAuthInfoResponse;
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.RequestOAuthInfoService;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
-import drugdrop.BE.common.oauth.platform.google.GoogleInfoResponse;
 import drugdrop.BE.common.oauth.platform.google.GoogleLoginParams;
 import drugdrop.BE.common.oauth.platform.kakao.KakaoInfoResponse;
 import drugdrop.BE.domain.Member;
@@ -41,13 +43,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
+    private final FirebaseApp firebaseApp;
+    private final FirebaseAuth firebaseAuth;
 
-    public TokenDto appleLogin(String accessToken, FirebaseToken firebaseToken){
-        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken, OAuthProvider.APPLE));
+    public TokenDto appleLogin(String tokenString, FirebaseToken firebaseToken){
+        return makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.APPLE));
     }
 
-    public TokenDto googleLoginFirebase(String accessToken, FirebaseToken firebaseToken){
-        return makeTokenDto(findOrCreateUserFromFirebase(accessToken, firebaseToken, OAuthProvider.GOOGLE));
+    public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
+        return makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.GOOGLE));
     }
 
     public TokenDto getGoogleAccessToken(String authCode){
@@ -68,7 +72,7 @@ public class AuthService {
         return token;
     }
 
-    private Map<String, Object> findOrCreateUserFromFirebase(String accessToken, FirebaseToken firebaseToken,
+    private Map<String, Object> findOrCreateUserFromFirebase(String tokenString, FirebaseToken firebaseToken,
                                                              OAuthProvider provider) {
 
         Map<String, Object> idAndIfNew = new HashMap<>();
@@ -78,7 +82,8 @@ public class AuthService {
             member = newUser(firebaseToken, provider);
             isNewUser = true;
         }
-        member.setProviderAccessToken(accessToken);
+        member.setProviderAccessToken(tokenString);
+        log.info(firebaseToken.toString());
         memberRepository.save(member);
 
         Long userId = member.getId();
@@ -174,22 +179,34 @@ public class AuthService {
         tokenProvider.deleteRefreshToken(accessToken);
     }
 
-    public Long quit(String accessToken) throws IOException {
+    public Long quit(String accessToken) throws IOException, FirebaseAuthException {
         String userId = tokenProvider.parseSubject(accessToken);
         Member member = memberRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
 
-        // 연동 해제
-        switch(member.getOauthProvider()){
-            case GOOGLE: requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.GOOGLE);
-                break;
-            case KAKAO:  requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
-                break;
-            case APPLE:  requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.APPLE);
-                break;
+        if(member.getOauthProvider() == OAuthProvider.KAKAO){
+            requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
+        }else{
+            FirebaseToken firebaseToken = checkFirebaseToken(member.getProviderAccessToken());
+            String uid = firebaseToken.getUid();
+            firebaseAuth.deleteUser(uid);
         }
+
         tokenProvider.deleteRefreshToken(accessToken);
         memberRepository.delete(member);
         return Long.valueOf(userId);
+    }
+
+    public FirebaseToken checkFirebaseToken(String token) {
+        FirebaseToken firebaseToken = null; // Firebase Id Token
+        try{
+            firebaseToken = firebaseAuth.verifyIdToken(token);
+        } catch(Exception e){
+            log.info(e.toString());
+            throw new CustomException(ErrorCode.LOGIN_TOKEN_ERROR);
+        }
+        log.info("user id: {}", firebaseToken.getUid()); // sub
+        log.info("email: {}", firebaseToken.getEmail());
+        return firebaseToken;
     }
 }
