@@ -153,6 +153,7 @@ public class AuthService {
         // 3. 인증 정보를 기반으로 JWT 토큰 생성
         //  + Redis에 RefreshToken 저장
         TokenDto tokenDto = tokenProvider.generateTokenDto(authentication);
+        tokenDto.setIsNewUser(false);
 
         // 4. 토큰 발급
         return tokenDto;

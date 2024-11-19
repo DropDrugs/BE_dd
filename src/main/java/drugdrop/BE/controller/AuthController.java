@@ -41,8 +41,10 @@ public class AuthController {
     }
 
     @PostMapping("/login/pw")
-    public ResponseEntity<TokenDto> login(@RequestBody @Valid MemberLoginRequest memberLoginRequest) {
-        return ResponseEntity.ok(authService.login(memberLoginRequest));
+    public ResponseEntity<TokenDto> login(@RequestBody @Valid MemberLoginRequest request) {
+        TokenDto response = authService.login(request);
+        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/google")
