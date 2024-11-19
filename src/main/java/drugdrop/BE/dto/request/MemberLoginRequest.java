@@ -20,6 +20,7 @@ public class MemberLoginRequest {
     private String email;
     @NotBlank
     private String password;
+    private String fcmToken;
 
     public UsernamePasswordAuthenticationToken toAuthentication() {
         return new UsernamePasswordAuthenticationToken(email, password);
