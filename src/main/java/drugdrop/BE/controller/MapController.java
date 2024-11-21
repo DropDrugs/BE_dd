@@ -36,16 +36,18 @@ public class MapController {
     }
 
     @GetMapping("/seoul")
-    public ResponseEntity<List<BinLocationResponse>> getSeoulDrugBinLocations(){
-        List<BinLocationResponse> response = mapService.getSeoulDrugBinLocations();
+    public ResponseEntity<List<BinLocationResponse>> getSeoulDrugBinLocations(
+            @RequestParam(value="type", required = false, defaultValue ="all") String type){
+        List<BinLocationResponse> response = mapService.getSeoulDrugBinLocations(type);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/division")
     public ResponseEntity<List<BinLocationResponse>> getDivisionDrugBinLocations(
             @RequestParam(value="addrLvl1") String addrLvl1,
-            @RequestParam(value="addrLvl2", required = false) String addrLvl2){
-        List<BinLocationResponse> response = mapService.getDivisionDrugBinLocations(addrLvl1, addrLvl2);
+            @RequestParam(value="addrLvl2", required = false) String addrLvl2,
+            @RequestParam(value="type", required = false, defaultValue ="all") String type){
+        List<BinLocationResponse> response = mapService.getDivisionDrugBinLocations(addrLvl1, addrLvl2, type);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

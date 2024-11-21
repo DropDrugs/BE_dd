@@ -47,12 +47,12 @@ public class MapService {
     private String checkType(String name){
         if(name.contains("약국")) return "약국";
         else if(name.contains("보건")) return "보건소";
-        else if(name.contains("주민센터") || name.contains("행정복지") || name.contains("면사무소")) return "주민센터";
+        else if(name.contains("주민센터") || name.contains("행정복지") || name.contains("면사무소")) return "동사무소";
         else if(name.contains("우체국") || name.contains("우체통")) return "우체국";
         else return "기타";
     }
 
-    private boolean checkDupclicate(String a1, String a2, String name){
+    private boolean checkDuplicate(String a1, String a2, String name){
         return binLocationRepository.existsByAddrLvl1AndAddrLvl2AndName(a1, a2, name);
     }
 
@@ -105,7 +105,7 @@ public class MapService {
                 String addrLvl1 = line[0];
                 String addrLvl2 = line[1];
                 String name = line[2];
-                if(checkDupclicate(addrLvl1, addrLvl2, name)) continue;
+                if(checkDuplicate(addrLvl1, addrLvl2, name)) continue;
 
                 String lat = "";
                 String lng = "";
@@ -136,20 +136,25 @@ public class MapService {
     }
 
     @Cacheable("addresses")
-    public List<BinLocationResponse> getSeoulDrugBinLocations(){
-        List<BinLocation> binLocations = binLocationRepository.findAllByAddrLvl1("서울특별시");
+    public List<BinLocationResponse> getSeoulDrugBinLocations(String type){
+        List<BinLocation> binLocations = new ArrayList<>();
+        if("all".equals(type)) binLocations = binLocationRepository.findAllByAddrLvl1("서울특별시");
+        else binLocations = binLocationRepository.findAllByAddrLvl1AndType("서울특별시", type);
         return binLocations.stream()
                 .map(bin -> BinLocationToBinLocationResponse(bin))
                 .collect(Collectors.toList());
     }
 
     @Cacheable("addresses")
-    public List<BinLocationResponse> getDivisionDrugBinLocations(String addrLvl1, String addrLvl2){
+    public List<BinLocationResponse> getDivisionDrugBinLocations(String addrLvl1, String addrLvl2, String type){
         List<BinLocation> binLocations = new ArrayList<>();
         if(addrLvl2 == null){
-            binLocations = binLocationRepository.findAllByAddrLvl1(addrLvl1);
+            if("all".equals(type)) binLocations = binLocationRepository.findAllByAddrLvl1(addrLvl1);
+            else binLocations = binLocationRepository.findAllByAddrLvl1AndType(addrLvl1, type);
+
         } else {
-            binLocations = binLocationRepository.findAllByAddrLvl1AndAddrLvl2(addrLvl1, addrLvl2);
+            if("all".equals(type)) binLocations = binLocationRepository.findAllByAddrLvl1AndAddrLvl2(addrLvl1, addrLvl2);
+            else binLocations = binLocationRepository.findAllByAddrLvl1AndAddrLvl2AndType(addrLvl1, addrLvl2, type);
         }
         return binLocations.stream()
                 .map(bin -> BinLocationToBinLocationResponse(bin))
