@@ -13,12 +13,13 @@ import javax.persistence.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(indexes = {@Index(name = "binlocation_index",columnList = "addrLvl1")})
 public class BinLocation extends BaseEntity {
 
-    @EmbeddedId
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "binlocation_id")
-    private BinId id;
+    private Long id;
 
     @Column(nullable = false)
     private String lat;
@@ -28,5 +29,6 @@ public class BinLocation extends BaseEntity {
     private String address;
     private String addrLvl1; // 시,도
     private String addrLvl2; // 시,군,구
-    private String detail;
+    private String name;
+    private String type; // 약국, 동사무소(주민센터,행정복지센터,면사무소), 우체국/통, 보건소(보건지소, 보건진료소)
 }
