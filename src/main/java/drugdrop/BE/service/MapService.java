@@ -57,7 +57,7 @@ public class MapService {
     }
 
     public void saveSeoulDrugBinLocations(){
-        savePostalLocations();
+
         JSONParser parser = new JSONParser();
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("seoul.geojson")){
             JSONObject jsonObject = (JSONObject) parser.parse(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
