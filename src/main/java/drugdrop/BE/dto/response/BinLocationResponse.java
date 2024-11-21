@@ -13,5 +13,6 @@ public class BinLocationResponse {
     private String address;
     private String addrLvl1; // 시,도
     private String addrLvl2; // 시,군,구
-    private String detail;
+    private String name;
+    private String type;
 }

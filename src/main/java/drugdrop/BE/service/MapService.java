@@ -4,7 +4,6 @@ package drugdrop.BE.service;
 import drugdrop.BE.common.Util.GeocodingUtil;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
-import drugdrop.BE.domain.BinId;
 import drugdrop.BE.domain.BinLocation;
 import drugdrop.BE.dto.request.CoordRequest;
 import drugdrop.BE.dto.response.BinLocationResponse;
@@ -46,9 +45,16 @@ public class MapService {
 
     private static final String[] divisions = {"서울특별시", "전라남도", "경기도", "경상남도"};
 
-    public Long saveSeoulDrugBinLocations(){
+    private String checkType(String name){
+        if(name.contains("약국")) return "약국";
+        else if(name.contains("보건")) return "보건소";
+        else if(name.contains("주민센터") || name.contains("행정복지") || name.contains("면사무소")) return "주민센터";
+        else if(name.contains("우체국") || name.contains("우체통")) return "우체국";
+        else return "기타";
+    }
+
+    public void saveSeoulDrugBinLocations(){
         JSONParser parser = new JSONParser();
-        Long cnt=1L;
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("seoul.geojson")){
             JSONObject jsonObject = (JSONObject) parser.parse(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
 
@@ -59,7 +65,7 @@ public class MapService {
                 String lat = (String) properties.get("COORD_Y");
                 String lng = (String) properties.get("COORD_X");
                 String addr = (String) properties.get("ADDR_NEW"); // 도로명주소
-                String detail = (String) properties.get("VALUE_01");  // ex) 복지관, 구청, 주민센터
+                String name = (String) properties.get("VALUE_01");  // ex) 복지관, 구청, 주민센터
                 String[] parts = addr.split("\\s+");
                 String addrLvl1 = parts[0];
                 String addrLvl2 = parts[1];
@@ -70,15 +76,16 @@ public class MapService {
                         break;
                     }
                 }
+                String type = checkType(name);
 
                 BinLocation bin = BinLocation.builder()
-                        .id(new BinId(cnt++, divisionKey))
                         .lat(lat)
                         .lng(lng)
                         .address(addr)
-                        .detail(detail)
+                        .name(name)
                         .addrLvl1(addrLvl1)
                         .addrLvl2(addrLvl2)
+                        .type()
                         .build();
                 binLocationRepository.save(bin);
             }
@@ -87,12 +94,9 @@ public class MapService {
         } catch (ParseException e){
             e.printStackTrace();
         }
-        return cnt;
     }
 
     public void saveDrugBinLocations(){
-        Long cnt = saveSeoulDrugBinLocations() +1;
-
         String[] line;
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("drugbin.CSV")){
             CSVReader csvReader = new CSVReaderBuilder(new InputStreamReader(inputStream, "UTF-8"))
@@ -117,13 +121,15 @@ public class MapService {
                         break;
                     }
                 }
+                String name = line[2];
+                String type = checkType(name);
                 BinLocation bin = BinLocation.builder()
-                        .id(new BinId(cnt++, divisionKey))
                         .lat(lat)
                         .lng(lng)
                         .addrLvl1(line[0])
                         .addrLvl2(line[1])
-                        .detail(line[2])
+                        .name(name)
+                        .type(type)
                         .address(line[3])
                         .build();
                 binLocationRepository.save(bin);
@@ -135,7 +141,7 @@ public class MapService {
 
     @Cacheable("addresses")
     public List<BinLocationResponse> getSeoulDrugBinLocations(){
-        List<BinLocation> binLocations = binLocationRepository.findAll();
+        List<BinLocation> binLocations = binLocationRepository.findAllByAddrLvl1("서울특별시");
         return binLocations.stream()
                 .map(bin -> BinLocationToBinLocationResponse(bin))
                 .collect(Collectors.toList());
@@ -156,11 +162,12 @@ public class MapService {
 
     private BinLocationResponse BinLocationToBinLocationResponse(BinLocation bin){
         return BinLocationResponse.builder()
-                .id(bin.getId().getBinId())
+                .id(bin.getId())
                 .address(bin.getAddress())
                 .lat(bin.getLat())
                 .lng(bin.getLng())
-                .detail(bin.getDetail())
+                .name(bin.getName())
+                .type(bin.getType())
                 .addrLvl1(bin.getAddrLvl1())
                 .addrLvl2(bin.getAddrLvl2())
                 .build();
