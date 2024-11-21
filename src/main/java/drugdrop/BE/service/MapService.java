@@ -57,6 +57,7 @@ public class MapService {
     }
 
     public void saveSeoulDrugBinLocations(){
+        savePostalLocations();
         JSONParser parser = new JSONParser();
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("seoul.geojson")){
             JSONObject jsonObject = (JSONObject) parser.parse(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
@@ -93,8 +94,48 @@ public class MapService {
         }
     }
 
+    public void savePostalLocations(){
+
+        String[] line;
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("postal.CSV")){
+            CSVReader csvReader = new CSVReaderBuilder(new InputStreamReader(inputStream, "UTF-8"))
+                    .withSkipLines(1) // skip header
+                    .build();
+            while((line = csvReader.readNext()) != null) {
+                String name = line[0];
+                String address = line[1];
+                String[] parts = address.split(" ");
+                String addrLvl1 = parts[0];
+                String addrLvl2 = parts[1];
+
+                String lat = line[2];
+                String lng = line[3];
+                if("".equals(lat) || "".equals(lng)){
+                    Map<String, String> coords = geocodingUtil.getCoordsByAddress(address);
+                    lat = coords.get("lat");
+                    lng = coords.get("lng");
+                }
+
+                String type = "우체국";
+                BinLocation bin = BinLocation.builder()
+                        .lat(lat)
+                        .lng(lng)
+                        .addrLvl1(addrLvl1)
+                        .addrLvl2(addrLvl2)
+                        .name(name)
+                        .type(type)
+                        .address(address)
+                        .build();
+                binLocationRepository.save(bin);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void saveDrugBinLocations(){
         saveSeoulDrugBinLocations();
+        savePostalLocations();
 
         String[] line;
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("drugbin.CSV")){
@@ -106,16 +147,14 @@ public class MapService {
                 String addrLvl2 = line[1];
                 String name = line[2];
                 if(checkDuplicate(addrLvl1, addrLvl2, name)) continue;
+                String address = line[3];
 
-                String lat = "";
-                String lng = "";
-                if(line[4].equals("") || line[5].equals("")){
-                    Map<String, String> coords = geocodingUtil.getCoordsByAddress(line[3]);
+                String lat = line[4];
+                String lng = line[5];
+                if("".equals(lat) || "".equals(lng)){
+                    Map<String, String> coords = geocodingUtil.getCoordsByAddress(address);
                     lat = coords.get("lat");
                     lng = coords.get("lng");
-                } else{
-                    lat = line[4];
-                    lng = line[5];
                 }
 
                 String type = checkType(name);
@@ -126,7 +165,7 @@ public class MapService {
                         .addrLvl2(addrLvl2)
                         .name(name)
                         .type(type)
-                        .address(line[3])
+                        .address(address)
                         .build();
                 binLocationRepository.save(bin);
             }
