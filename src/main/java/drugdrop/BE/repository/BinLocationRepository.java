@@ -8,4 +8,5 @@ import java.util.List;
 public interface BinLocationRepository extends JpaRepository<BinLocation, Long> {
     List<BinLocation> findAllByAddrLvl1AndAddrLvl2(String addrLvl1, String addrLvl2);
     List<BinLocation> findAllByAddrLvl1(String addrLvl1);
+    boolean existsByAddrLvl1AndAddrLvl2AndName(String addrLvl1, String addrLvl2, String name);
 }

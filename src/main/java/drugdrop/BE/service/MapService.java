@@ -43,7 +43,6 @@ public class MapService {
     @Value("${application.spring.cloud.gcp.placeAPI}")
     private String API_KEY;
 
-    private static final String[] divisions = {"서울특별시", "전라남도", "경기도", "경상남도"};
 
     private String checkType(String name){
         if(name.contains("약국")) return "약국";
@@ -51,6 +50,10 @@ public class MapService {
         else if(name.contains("주민센터") || name.contains("행정복지") || name.contains("면사무소")) return "주민센터";
         else if(name.contains("우체국") || name.contains("우체통")) return "우체국";
         else return "기타";
+    }
+
+    private boolean checkDupclicate(String a1, String a2, String name){
+        return binLocationRepository.existsByAddrLvl1AndAddrLvl2AndName(a1, a2, name);
     }
 
     public void saveSeoulDrugBinLocations(){
@@ -69,13 +72,7 @@ public class MapService {
                 String[] parts = addr.split("\\s+");
                 String addrLvl1 = parts[0];
                 String addrLvl2 = parts[1];
-                Integer divisionKey=0;
-                for(int i=0; i<divisions.length; i++){
-                    if(divisions[i].equals(addrLvl1)){
-                        divisionKey = i+1;
-                        break;
-                    }
-                }
+
                 String type = checkType(name);
 
                 BinLocation bin = BinLocation.builder()
@@ -85,7 +82,7 @@ public class MapService {
                         .name(name)
                         .addrLvl1(addrLvl1)
                         .addrLvl2(addrLvl2)
-                        .type()
+                        .type(type)
                         .build();
                 binLocationRepository.save(bin);
             }
@@ -97,12 +94,19 @@ public class MapService {
     }
 
     public void saveDrugBinLocations(){
+        saveSeoulDrugBinLocations();
+
         String[] line;
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("drugbin.CSV")){
             CSVReader csvReader = new CSVReaderBuilder(new InputStreamReader(inputStream, "UTF-8"))
                     .withSkipLines(1) // skip header
                     .build();
             while((line = csvReader.readNext()) != null) {
+                String addrLvl1 = line[0];
+                String addrLvl2 = line[1];
+                String name = line[2];
+                if(checkDupclicate(addrLvl1, addrLvl2, name)) continue;
+
                 String lat = "";
                 String lng = "";
                 if(line[4].equals("") || line[5].equals("")){
@@ -113,21 +117,13 @@ public class MapService {
                     lat = line[4];
                     lng = line[5];
                 }
-                Integer divisionKey=0;
-                String addrLvl1 = line[0];
-                for(int i=0; i<divisions.length; i++){
-                    if(divisions[i].equals(addrLvl1)){
-                        divisionKey = i+1;
-                        break;
-                    }
-                }
-                String name = line[2];
+
                 String type = checkType(name);
                 BinLocation bin = BinLocation.builder()
                         .lat(lat)
                         .lng(lng)
-                        .addrLvl1(line[0])
-                        .addrLvl2(line[1])
+                        .addrLvl1(addrLvl1)
+                        .addrLvl2(addrLvl2)
                         .name(name)
                         .type(type)
                         .address(line[3])
