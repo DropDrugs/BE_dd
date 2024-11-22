@@ -34,6 +34,7 @@ public enum ErrorCode {
 
     // Map 예외
     NOT_FOUND_MAP_RESULT(HttpStatus.NOT_FOUND, "장소 검색 결과가 없습니다."),
+    MAP_ERROR(HttpStatus.CONFLICT, "MAP API 에러 발생."),
 
     // Drug 예외
     NOT_FOUND_DRUG(HttpStatus.NOT_FOUND, "해당 약이 존재하지 않습니다."),

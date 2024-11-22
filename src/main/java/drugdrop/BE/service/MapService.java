@@ -200,7 +200,7 @@ public class MapService {
                 .collect(Collectors.toList());
     }
 
-    private BinLocationResponse BinLocationToBinLocationResponse(BinLocation bin){
+    private BinLocationResponse BinLocationToBinLocationResponse(BinLocation bin) {
         return BinLocationResponse.builder()
                 .id(bin.getId())
                 .address(bin.getAddress())
@@ -210,7 +210,18 @@ public class MapService {
                 .type(bin.getType())
                 .addrLvl1(bin.getAddrLvl1())
                 .addrLvl2(bin.getAddrLvl2())
+                .locationPhoto(getLocationPhoto(bin.getName()))
                 .build();
+    }
+
+    private String getLocationPhoto(String name)  {
+        try {
+            List<MapResponse> response = searchLocations(name);
+            return response.get(0).getLocationPhoto();
+        }catch (Exception e){
+            log.error(e.toString());
+            throw new CustomException(ErrorCode.MAP_ERROR);
+        }
     }
 
     public List<MapResponse> getNearbyPharmacyAndConvenienceLocations(CoordRequest coordRequest) throws IOException, ParseException {
@@ -249,7 +260,7 @@ public class MapService {
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type","application/json");
         conn.setRequestProperty("X-Goog-Api-key",API_KEY);
-        conn.setRequestProperty("X-Goog-FieldMask","places.displayName,places.formattedAddress,places.id");
+        conn.setRequestProperty("X-Goog-FieldMask","places.displayName,places.formattedAddress,places.id,places.photos");
         conn.setDoOutput(true);
 
         try (OutputStream os = conn.getOutputStream()) {
@@ -290,8 +301,8 @@ public class MapService {
         return parseLocationDetail(response.toString());
     }
 
-    private List<MapResponse> parseLocationsDetail(String result) throws ParseException {
-        System.out.println(result);
+    private List<MapResponse> parseLocationsDetail(String result) throws ParseException, IOException {
+//        System.out.println(result);
         if(result.equals("{}")){
             throw new CustomException(ErrorCode.NOT_FOUND_MAP_RESULT);
         }
@@ -303,12 +314,22 @@ public class MapService {
             JSONObject location = (JSONObject) object;
             Map<String, String> coords = geocodingUtil.getCoordsByAddress((String)location.get("formattedAddress"));
             JSONObject displayName = (JSONObject) location.get("displayName");
+
+            // photo
+            JSONArray photos = (JSONArray) location.get("photos");
+            String locationPhoto = "none";
+            if(photos != null){
+                JSONObject photo = (JSONObject) photos.get(0);
+                locationPhoto = getLocationPhotoUrl((String)photo.get("name"));
+            }
+
             MapResponse mapResponse = MapResponse.builder()
                     .locationName((String)displayName.get("text"))
                     .locationAddress((String)location.get("formattedAddress"))
                     .locationId((String)location.get("id"))
                     .latitude(coords.get("lat"))
                     .longitude(coords.get("lng"))
+                    .locationPhoto(locationPhoto)
                     .build();
             mapResponses.add(mapResponse);
         }
@@ -316,7 +337,7 @@ public class MapService {
     }
 
     private MapDetailResponse parseLocationDetail(String result) throws ParseException, IOException {
-        System.out.println(result);
+//        System.out.println(result);
         JSONParser parser = new JSONParser();
         JSONObject location = (JSONObject) parser.parse(result);
         JSONObject name = (JSONObject) location.get("displayName");
@@ -351,7 +372,7 @@ public class MapService {
     }
 
     private String parseLocationPhotoUrl(String result) throws ParseException {
-        System.out.println("\n\n"+result);
+//        System.out.println("\n\n"+result);
         JSONParser parser = new JSONParser();
         JSONObject photo = (JSONObject) parser.parse(result);
         return (String) photo.get("photoUri");

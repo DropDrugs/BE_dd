@@ -11,4 +11,5 @@ public class MapResponse {
     private String locationId;
     private String latitude;
     private String longitude;
+    private String locationPhoto;
 }
