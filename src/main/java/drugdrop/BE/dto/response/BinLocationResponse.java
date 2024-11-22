@@ -15,4 +15,5 @@ public class BinLocationResponse {
     private String addrLvl2; // 시,군,구
     private String name;
     private String type;
+    private String locationPhoto;
 }
