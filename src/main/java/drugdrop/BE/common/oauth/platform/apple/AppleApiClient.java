@@ -8,6 +8,7 @@ import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -30,7 +31,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.time.ZoneId;
 
-
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토큰 받기 & 사용자 정보 가져오기
@@ -40,7 +41,7 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
     private static final String GRANT_TYPE = "authorization_code";
 
     private String quitUrl = "https://appleid.apple.com/auth/revoke";
-    private String apiUrl = "";
+    private String tokenUrl = "https://appleid.apple.com/auth/token";
 
     @Value("${apple.client-id}")
     private String clientId; // bundle id
@@ -64,7 +65,32 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         return ret;
     }
 
-    public void quit(String accessToken) throws IOException { // Apple 에서 발급한 accessToken revoke 신청
+    private String getRefreshTokenFromCode(String code) throws IOException {
+        // HELP : https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
+
+        String url = tokenUrl;
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("client_id", clientId);
+        body.add("client_secret", getClientSecret());
+        body.add("code", code);
+        body.add("grant_type", "authorization_code");
+
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+        ResponseEntity<AppleTokenResponse> response = restTemplate.exchange(url, HttpMethod.POST,
+                request, AppleTokenResponse.class);
+
+        if(response.getStatusCode() != HttpStatus.OK){
+            log.info(response.getBody().toString());
+            throw new CustomException(ErrorCode.QUIT_ERROR);
+        }
+        return response.getBody().getRefreshToken();
+    }
+
+    public void quit(String code) throws IOException { // Apple 에서 발급한 accessToken revoke 신청
+        String refreshToken  = getRefreshTokenFromCode(code);
         String url = quitUrl;
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -72,8 +98,8 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("client_id", clientId);
         body.add("client_secret", getClientSecret());
-        body.add("token", accessToken);
-        body.add("token_type_hint", "access_token");
+        body.add("token", refreshToken);
+        body.add("token_type_hint", "refresh_token");
 
         HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
 

@@ -1,5 +1,6 @@
 package drugdrop.BE.repository;
 
+import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,4 +12,5 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Member findByOauthId(String oauthId);
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
+    Member findByEmailAndOauthProvider(String email,  OAuthProvider provider);
 }

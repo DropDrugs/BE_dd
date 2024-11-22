@@ -3,9 +3,7 @@ package drugdrop.BE.controller;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import drugdrop.BE.common.jwt.TokenDto;
-import drugdrop.BE.dto.request.MemberSignupRequest;
-import drugdrop.BE.dto.request.OAuthLoginRequest;
-import drugdrop.BE.dto.request.MemberLoginRequest;
+import drugdrop.BE.dto.request.*;
 import drugdrop.BE.dto.response.IdResponse;
 import drugdrop.BE.service.AuthService;
 import drugdrop.BE.service.FCMTokenService;
@@ -48,17 +46,24 @@ public class AuthController {
     }
 
     @PostMapping("login/google")
-    public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid OAuthLoginRequest request){
+    public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid FirebaseAuthLoginRequest request){
         FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
         TokenDto response = authService.googleLoginFirebase(request.getIdToken(), firebaseToken);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("login/apple")
-    public ResponseEntity<TokenDto> appleLogin(@RequestBody @Valid OAuthLoginRequest request){
+    @PostMapping("login/apple/firebase")
+    public ResponseEntity<TokenDto> appleLoginFirebase(@RequestBody @Valid FirebaseAuthLoginRequest request){
         FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
-        TokenDto response = authService.appleLogin(request.getIdToken(), firebaseToken);
+        TokenDto response = authService.appleLoginFirebase(request.getIdToken(), firebaseToken);
+        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("login/apple")
+    public ResponseEntity<TokenDto> appleLogin(@RequestBody @Valid AppleLoginRequest request){
+        TokenDto response = authService.appleLogin(request);
         fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
@@ -89,8 +94,8 @@ public class AuthController {
     }
 
     @PostMapping("/quit")
-    public ResponseEntity<Void> quit(@RequestBody Map<String, String> token) throws IOException, FirebaseAuthException {
-        Long memberId = authService.quit(token.get("accessToken"));
+    public ResponseEntity<Void> quit(@RequestBody @Valid QuitRequest request) throws IOException, FirebaseAuthException {
+        Long memberId = authService.quit(request);
         fcmTokenService.deleteToken(memberId);
         return new ResponseEntity(HttpStatus.OK);
     }

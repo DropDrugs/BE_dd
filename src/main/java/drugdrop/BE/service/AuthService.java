@@ -12,12 +12,11 @@ import drugdrop.BE.common.oauth.OAuthInfoResponse;
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.RequestOAuthInfoService;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
+import drugdrop.BE.common.oauth.platform.apple.AppleInfoResponse;
 import drugdrop.BE.common.oauth.platform.google.GoogleLoginParams;
 import drugdrop.BE.common.oauth.platform.kakao.KakaoInfoResponse;
 import drugdrop.BE.domain.Member;
-import drugdrop.BE.dto.request.MemberSignupRequest;
-import drugdrop.BE.dto.request.OAuthLoginRequest;
-import drugdrop.BE.dto.request.MemberLoginRequest;
+import drugdrop.BE.dto.request.*;
 import drugdrop.BE.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,8 +45,12 @@ public class AuthService {
     private final FirebaseApp firebaseApp;
     private final FirebaseAuth firebaseAuth;
 
-    public TokenDto appleLogin(String tokenString, FirebaseToken firebaseToken){
+    public TokenDto appleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
         return makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.APPLE));
+    }
+
+    public TokenDto appleLogin(AppleLoginRequest request){
+        return makeTokenDto(findOrCreateUser(request.getName(), request.getEmail()));
     }
 
     public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
@@ -72,6 +75,23 @@ public class AuthService {
         return token;
     }
 
+    private Map<String, Object> findOrCreateUser(String name, String email) {
+
+        Map<String, Object> idAndIfNew = new HashMap<>();
+        Boolean isNewUser = false;
+        Member member = memberRepository.findByEmailAndOauthProvider(email, OAuthProvider.APPLE);
+        if (member == null){
+            member = newUser(name, email, OAuthProvider.APPLE);
+            isNewUser = true;
+            memberRepository.save(member);
+        }
+
+        Long memberId = member.getId();
+        idAndIfNew.put("userId", memberId);
+        idAndIfNew.put("isNewUser", isNewUser);
+        return idAndIfNew;
+    }
+
     private Map<String, Object> findOrCreateUserFromFirebase(String tokenString, FirebaseToken firebaseToken,
                                                              OAuthProvider provider) {
 
@@ -94,7 +114,7 @@ public class AuthService {
 
     private Map<String, Object> findOrCreateUserFromOAuth(OAuthInfoResponse oAuthInfoResponse) {
         OAuthUserProfile profile = requestOAuthInfoService.getUserInfo(oAuthInfoResponse.getAccessToken(),
-                OAuthProvider.KAKAO);
+                oAuthInfoResponse.getOAuthProvider());
 
         Map<String, Object> idAndIfNew = new HashMap<>();
         Boolean isNewUser = false;
@@ -106,10 +126,19 @@ public class AuthService {
         member.setProviderAccessToken(oAuthInfoResponse.getAccessToken());
         memberRepository.save(member);
 
-        Long userId = member.getId();
-        idAndIfNew.put("userId", userId);
+        Long memberId = member.getId();
+        idAndIfNew.put("userId", memberId);
         idAndIfNew.put("isNewUser", isNewUser);
         return idAndIfNew;
+    }
+
+    private Member newUser(String name, String email, OAuthProvider provider) {
+        Member member = Member.builder()
+                .email(email)
+                .nickname(name)
+                .oauthProvider(provider)
+                .build();
+        return memberRepository.save(member);
     }
 
     private Member newUser(OAuthUserProfile profile, OAuthProvider provider) {
@@ -180,17 +209,22 @@ public class AuthService {
         tokenProvider.deleteRefreshToken(accessToken);
     }
 
-    public Long quit(String accessToken) throws IOException, FirebaseAuthException {
+    public Long quit(QuitRequest request) throws IOException, FirebaseAuthException {
+        String accessToken = request.getAccessToken();
         String userId = tokenProvider.parseSubject(accessToken);
         Member member = memberRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
 
         if(member.getOauthProvider() == OAuthProvider.KAKAO) {
             requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
-        }else if(member.getOauthProvider() != OAuthProvider.NONE){
+
+        }else if(member.getOauthProvider() == OAuthProvider.GOOGLE){
             FirebaseToken firebaseToken = checkFirebaseToken(member.getProviderAccessToken());
             String uid = firebaseToken.getUid();
             firebaseAuth.deleteUser(uid);
+
+        }else if(member.getOauthProvider() == OAuthProvider.APPLE){
+            requestOAuthInfoService.quit(request.getProviderCode(), OAuthProvider.APPLE);
         }
 
         tokenProvider.deleteRefreshToken(accessToken);
