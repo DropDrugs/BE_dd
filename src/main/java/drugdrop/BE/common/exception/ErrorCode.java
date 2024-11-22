@@ -33,7 +33,10 @@ public enum ErrorCode {
     FCM_MESSAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "FCM 메세징 오류"),
 
     // Map 예외
-    NOT_FOUND_MAP_RESULT(HttpStatus.NOT_FOUND, "장소 검색 결과가 없습니다."),;
+    NOT_FOUND_MAP_RESULT(HttpStatus.NOT_FOUND, "장소 검색 결과가 없습니다."),
+
+    // Drug 예외
+    NOT_FOUND_DRUG(HttpStatus.NOT_FOUND, "해당 약이 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String detail;

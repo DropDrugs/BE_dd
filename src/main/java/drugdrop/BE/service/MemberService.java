@@ -7,7 +7,6 @@ import drugdrop.BE.domain.Member;
 import drugdrop.BE.domain.TransactionType;
 import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
-import drugdrop.BE.dto.response.MemberEmailResponse;
 import drugdrop.BE.dto.response.NotificationSettingResponse;
 import drugdrop.BE.repository.MemberRepository;
 import drugdrop.BE.repository.NotificationSettingRepository;
@@ -58,6 +57,8 @@ public class MemberService {
                 .disposal(n.isDisposal())
                 .reward(n.isReward())
                 .noticeboard(n.isNoticeboard())
+                .takeDrug(n.isTakeDrug())
+                .lastIntake(n.isLastIntake())
                 .build();
         List<Integer> chars = getOwnedCharacterIndices(member);
         return MemberDetailResponse.builder()

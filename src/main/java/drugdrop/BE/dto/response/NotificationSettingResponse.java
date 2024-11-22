@@ -9,4 +9,6 @@ public class NotificationSettingResponse {
     private boolean reward;
     private boolean noticeboard;
     private boolean disposal;
+    private boolean takeDrug;
+    private boolean lastIntake;
 }

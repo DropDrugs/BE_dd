@@ -185,9 +185,9 @@ public class AuthService {
         Member member = memberRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
 
-        if(member.getOauthProvider() == OAuthProvider.KAKAO){
+        if(member.getOauthProvider() == OAuthProvider.KAKAO) {
             requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
-        }else{
+        }else if(member.getOauthProvider() != OAuthProvider.NONE){
             FirebaseToken firebaseToken = checkFirebaseToken(member.getProviderAccessToken());
             String uid = firebaseToken.getUid();
             firebaseAuth.deleteUser(uid);
