@@ -27,4 +27,10 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             @Param("disposalTypes") List<TransactionType> disposalTypes,
             @Param("startDate") LocalDateTime startDate
     );
+
+    @Query("SELECT new drugdrop.BE.domain.MemberLatestTransaction(pt.member, MAX(pt.createdDate)) " +
+            "FROM PointTransaction pt " +
+            "WHERE pt.type IN :types " +
+            "GROUP BY pt.member")
+    List<PointTransaction> findLatestTransactionsForMembers(List<String> types);
 }

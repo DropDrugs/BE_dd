@@ -2,10 +2,7 @@ package drugdrop.BE.service;
 
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
-import drugdrop.BE.domain.Member;
-import drugdrop.BE.domain.Notification;
-import drugdrop.BE.domain.PointTransaction;
-import drugdrop.BE.domain.TransactionType;
+import drugdrop.BE.domain.*;
 import drugdrop.BE.dto.response.MonthlyDisposalCountResponse;
 import drugdrop.BE.dto.response.PointResponse;
 import drugdrop.BE.dto.response.PointTransactionDetailResponse;
@@ -14,6 +11,7 @@ import drugdrop.BE.repository.MemberRepository;
 import drugdrop.BE.repository.PointTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +29,7 @@ public class PointService {
     private final MemberRepository memberRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final NotificationService notificationService;
+    private final String[] options = {"reward", "disposal"};
 
     public PointResponse getTotalPoint(Long memberId){
         Member member = getMemberOrThrow(memberId);
@@ -46,13 +45,13 @@ public class PointService {
         recordPointTransaction(member, TransactionType.valueOf(type), point);
         switch(type){
             case "PHOTO_CERTIFICATION" :
-                sendNotification(member, "폐기사진 인증 리워드 적립", "\uD83E\uDD17");
+                sendNotification(options[0], member, "폐기사진 인증 리워드 적립", "\uD83E\uDD17");
                 break;
             case "GENERAL_CERTIFICATION" :
-                sendNotification(member, "폐기 일반 인증 리워드 적립", "\uD83E\uDD17"); //🤗
+                sendNotification(options[0], member, "폐기 일반 인증 리워드 적립", "\uD83E\uDD17"); //🤗
                 break;
             case "LOCATION_INQUIRY" :
-                sendNotification(member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
+                sendNotification(options[0], member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
                 break;
         }
     }
@@ -98,8 +97,24 @@ public class PointService {
         pointTransactionRepository.save(transaction);
     }
 
-    private void sendNotification(Member member, String title, String message){
-        if(!member.getNotificationSetting().isReward()) return;
+    @Scheduled(cron="0 0 9 * * *", zone = "Asia/Seoul")
+    public void sendDisposalReminderNotification(){
+        LocalDate ninetyDaysAgo = LocalDate.now().minusDays(90);
+
+        List<PointTransaction> transactions = pointTransactionRepository.findLatestTransactionsForMembers(
+                List.of(TransactionType.PHOTO_CERTIFICATION.toString()
+                        , TransactionType.GENERAL_CERTIFICATION.toString()));
+        for(PointTransaction t : transactions){
+            if (t.getCreatedDate().toLocalDate().isBefore(ninetyDaysAgo)) {
+                sendNotification(options[1], t.getMember(), "폐기 리마인드 알림",
+            "90일 전에 폐의약품을 폐기하셨습니다. 혹시 버릴 약이 있다면, 적절히 폐기할 수 있도록 확인해 주세요!");
+            }
+        }
+    }
+
+    private void sendNotification(String option, Member member, String title, String message){
+        if(option.equals(options[0]) && !member.getNotificationSetting().isReward()) return;
+        if(option.equals(options[1]) && !member.getNotificationSetting().isDisposal()) return;
         Notification notification = Notification.builder()
                 .member(member)
                 .title(title)
