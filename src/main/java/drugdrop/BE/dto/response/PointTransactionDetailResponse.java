@@ -11,4 +11,5 @@ public class PointTransactionDetailResponse {
     private String type;
     private Integer point;
     private LocalDateTime date;
+    private String location;
 }

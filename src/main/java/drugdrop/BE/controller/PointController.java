@@ -1,6 +1,8 @@
 package drugdrop.BE.controller;
 
 import drugdrop.BE.common.auth.SecurityUtil;
+import drugdrop.BE.dto.request.AddPointRequest;
+import drugdrop.BE.dto.response.BadgeEarnedResponse;
 import drugdrop.BE.dto.response.MonthlyDisposalCountResponse;
 import drugdrop.BE.dto.response.PointResponse;
 import drugdrop.BE.dto.response.PointTransactionResponse;
@@ -30,10 +32,9 @@ public class PointController {
     }
 
     @PostMapping("")
-    public ResponseEntity<Void> addPoint(@RequestParam("point") Integer point,
-                                         @RequestParam("type") String type){
-        pointService.addPoint(SecurityUtil.getCurrentMemberId(), point, type);
-        return new ResponseEntity(HttpStatus.OK);
+    public ResponseEntity<BadgeEarnedResponse> addPoint(@RequestBody AddPointRequest request){
+        BadgeEarnedResponse response = pointService.addPoint(SecurityUtil.getCurrentMemberId(), request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/history")

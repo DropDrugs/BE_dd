@@ -8,6 +8,7 @@ import drugdrop.BE.domain.TransactionType;
 import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
 import drugdrop.BE.dto.response.NotificationSettingResponse;
+import drugdrop.BE.repository.LocationBadgeRepository;
 import drugdrop.BE.repository.MemberRepository;
 import drugdrop.BE.repository.NotificationSettingRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final NotificationSettingRepository notificationSettingRepository;
+    private final LocationBadgeRepository locationBadgeRepository;
     private final PointService pointService;
     private final Integer characterCost = 200;
 
@@ -61,12 +64,16 @@ public class MemberService {
                 .lastIntake(n.isLastIntake())
                 .build();
         List<Integer> chars = getOwnedCharacterIndices(member);
+        List<String> badges = locationBadgeRepository.findAllByMemberId(memberId).stream()
+                .map(b -> b.getLocation())
+                .collect(Collectors.toList());
         return MemberDetailResponse.builder()
                 .nickname(member.getNickname())
                 .email(member.getEmail())
                 .selectedChar(member.getSelectedChar())
                 .ownedChars(chars)
                 .notificationSetting(nr)
+                .locationBadges(badges)
                 .build();
     }
 
@@ -115,7 +122,7 @@ public class MemberService {
         member.setOwnedChars(member.getOwnedChars() | (1 << charId));
         member.subPoint(characterCost);
         memberRepository.save(member);
-        pointService.recordPointTransaction(member, TransactionType.CHARACTER_PURCHASE, -200);
+        pointService.recordPointTransaction(member, TransactionType.CHARACTER_PURCHASE, -200, "none");
     }
 
     private Member getMemberOrThrow(Long memberId) {

@@ -14,4 +14,5 @@ public class MemberDetailResponse {
     private List<Integer> ownedChars;
     private int point;
     private NotificationSettingResponse notificationSetting;
+    private List<String> locationBadges;
 }

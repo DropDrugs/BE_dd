@@ -33,4 +33,7 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             "WHERE pt.type IN :types " +
             "GROUP BY pt.member")
     List<PointTransaction> findLatestTransactionsForMembers(List<String> types);
+
+    long countByMemberIdAndLocation(Long memberId, String location);
+
 }
