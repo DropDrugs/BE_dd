@@ -3,10 +3,9 @@ package drugdrop.BE.service;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.domain.*;
-import drugdrop.BE.dto.response.MonthlyDisposalCountResponse;
-import drugdrop.BE.dto.response.PointResponse;
-import drugdrop.BE.dto.response.PointTransactionDetailResponse;
-import drugdrop.BE.dto.response.PointTransactionResponse;
+import drugdrop.BE.dto.request.AddPointRequest;
+import drugdrop.BE.dto.response.*;
+import drugdrop.BE.repository.LocationBadgeRepository;
 import drugdrop.BE.repository.MemberRepository;
 import drugdrop.BE.repository.PointTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +28,7 @@ public class PointService {
     private final MemberRepository memberRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final NotificationService notificationService;
+    private final LocationBadgeRepository locationBadgeRepository;
     private final String[] options = {"reward", "disposal"};
 
     public PointResponse getTotalPoint(Long memberId){
@@ -38,11 +38,15 @@ public class PointService {
                 .build();
     }
 
-    public void addPoint(Long memberId, Integer point, String type){
+    public BadgeEarnedResponse addPoint(Long memberId, AddPointRequest request){
+        String type = request.getType();
+        Integer point = request.getPoint();
+        String location = request.getLocation();
+
         Member member = getMemberOrThrow(memberId);
         member.addPoint(point);
         memberRepository.save(member);
-        recordPointTransaction(member, TransactionType.valueOf(type), point);
+        recordPointTransaction(member, TransactionType.valueOf(type), point, location);
         switch(type){
             case "PHOTO_CERTIFICATION" :
                 sendNotification(options[0], member, "폐기사진 인증 리워드 적립", "\uD83E\uDD17");
@@ -54,6 +58,20 @@ public class PointService {
                 sendNotification(options[0], member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
                 break;
         }
+        Boolean getBadge = checkLocationBadge(member, location);
+        return BadgeEarnedResponse.builder().getBadge(getBadge).build();
+    }
+
+    private boolean checkLocationBadge(Member member, String location){
+        if(10 == pointTransactionRepository.countByMemberIdAndLocation(member.getId(), location)) {
+            LocationBadge badge = LocationBadge.builder()
+                    .member(member)
+                    .location(location)
+                    .build();
+            locationBadgeRepository.save(badge);
+            return true;
+        }
+        return false;
     }
 
     public PointTransactionResponse getPointTransactionHistory(Long memberId){
@@ -88,11 +106,12 @@ public class PointService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
     }
 
-    public void recordPointTransaction(Member member, TransactionType type, Integer point){
+    public void recordPointTransaction(Member member, TransactionType type, Integer point, String location){
         PointTransaction transaction = PointTransaction.builder()
                 .member(member)
                 .type(type)
                 .point(point)
+                .location(location)
                 .build();
         pointTransactionRepository.save(transaction);
     }

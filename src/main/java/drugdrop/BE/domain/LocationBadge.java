@@ -10,24 +10,24 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 
+import static javax.persistence.FetchType.LAZY;
+
 @Entity
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PointTransaction extends BaseEntity {
+public class LocationBadge extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "point_transaction_id")
+    @Column(name = "location_badge_id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "member_id", nullable = false)
+    @ManyToOne(fetch = LAZY)
+    @JoinColumn(name = "member_id")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
-    @Enumerated(EnumType.STRING)
-    private TransactionType type; // 캐릭터 구매, 폐기사진 인증, 폐기 일반 인증, 폐기 장소 문의
-    private Integer point; // +-
+
     private String location;
 }
