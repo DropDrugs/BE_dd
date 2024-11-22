@@ -14,4 +14,8 @@ public class NotificationSettingRequest {
     private Boolean noticeboard;
     @NotNull
     private Boolean disposal;
+    @NotNull
+    private Boolean takeDrug;
+    @NotNull
+    private Boolean lastIntake;
 }

@@ -99,6 +99,7 @@ public class PointService {
     }
 
     private void sendNotification(Member member, String title, String message){
+        if(!member.getNotificationSetting().isReward()) return;
         Notification notification = Notification.builder()
                 .member(member)
                 .title(title)
