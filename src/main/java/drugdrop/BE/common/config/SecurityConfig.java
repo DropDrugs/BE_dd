@@ -6,6 +6,7 @@ import drugdrop.BE.common.jwt.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -71,6 +72,12 @@ public class SecurityConfig {
             .and()
             .addFilter(corsConfig.corsFilter())
             .authorizeRequests()
+            // /board 경로에 대한 GET 요청은 모두 허용
+            .antMatchers(HttpMethod.GET, "/board", "/board/**").permitAll()
+            // /board 및 /board/** 경로에 대한 POST, PUT, DELETE 요청은 ROLE_ADMIN만 허용
+            .antMatchers(HttpMethod.POST, "/board", "/board/**").hasAuthority("ROLE_ADMIN")
+            .antMatchers(HttpMethod.PUT, "/board", "/board/**").hasAuthority("ROLE_ADMIN")
+            .antMatchers(HttpMethod.DELETE, "/board", "/board/**").hasAuthority("ROLE_ADMIN")
             .antMatchers(WHITE_LIST).permitAll()
             .requestMatchers(forPort(9292)).anonymous() // actuator
             .anyRequest().authenticated()   // 나머지 API 는 전부 인증 필요
