@@ -12,6 +12,7 @@ import drugdrop.BE.common.oauth.OAuthInfoResponse;
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.RequestOAuthInfoService;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
+import drugdrop.BE.common.oauth.platform.apple.AppleApiClient;
 import drugdrop.BE.common.oauth.platform.apple.AppleInfoResponse;
 import drugdrop.BE.common.oauth.platform.google.GoogleLoginParams;
 import drugdrop.BE.common.oauth.platform.kakao.KakaoInfoResponse;
@@ -42,6 +43,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
+    private final AppleApiClient appleApiClient;
     private final FirebaseApp firebaseApp;
     private final FirebaseAuth firebaseAuth;
 
@@ -50,7 +52,7 @@ public class AuthService {
     }
 
     public TokenDto appleLogin(AppleLoginRequest request){
-        return makeTokenDto(findOrCreateUser(request.getName(), request.getEmail()));
+        return makeTokenDto(findOrCreateUser(request.getName(), request.getEmail(), request.getAuthCode()));
     }
 
     public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
@@ -75,7 +77,7 @@ public class AuthService {
         return token;
     }
 
-    private Map<String, Object> findOrCreateUser(String name, String email) {
+    private Map<String, Object> findOrCreateUser(String name, String email, String authCode) {
 
         Map<String, Object> idAndIfNew = new HashMap<>();
         Boolean isNewUser = false;
@@ -83,6 +85,8 @@ public class AuthService {
         if (member == null){
             member = newUser(name, email, OAuthProvider.APPLE);
             isNewUser = true;
+            String refreshToken = appleApiClient.getRefreshTokenFromCode(authCode);
+            member.setProviderAccessToken(refreshToken);
             memberRepository.save(member);
         }
 
@@ -224,7 +228,7 @@ public class AuthService {
             firebaseAuth.deleteUser(uid);
 
         }else if(member.getOauthProvider() == OAuthProvider.APPLE){
-            requestOAuthInfoService.quit(request.getProviderCode(), OAuthProvider.APPLE);
+            requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.APPLE);
         }
 
         tokenProvider.deleteRefreshToken(accessToken);
