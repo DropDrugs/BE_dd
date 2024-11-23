@@ -65,7 +65,7 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         return ret;
     }
 
-    private String getRefreshTokenFromCode(String code) throws IOException {
+    public String getRefreshTokenFromCode(String code)  {
         // HELP : https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
 
         String url = tokenUrl;
@@ -89,8 +89,7 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         return response.getBody().getRefreshToken();
     }
 
-    public void quit(String code) throws IOException { // Apple 에서 발급한 accessToken revoke 신청
-        String refreshToken  = getRefreshTokenFromCode(code);
+    public void quit(String refreshToken)  { // Apple 에서 발급한 accessToken revoke 신청
         String url = quitUrl;
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -114,22 +113,28 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         return new OAuthUserProfile();
     }
 
-    private String getClientSecret() throws IOException {
+    private String getClientSecret() {
         if(tokenRedisTemplate.hasKey("@APPLE")){
             return tokenRedisTemplate.opsForValue().get("@APPLE");
         }
 
         Date expirationDate = Date.from(LocalDateTime.now().plusDays(30).atZone(ZoneId.systemDefault()).toInstant());
-        String token = Jwts.builder()
-                .setHeaderParam("kid", keyId)
-                .setHeaderParam("alg", "ES256")
-                .setIssuer(teamId)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(expirationDate)
-                .setAudience("https://appleid.apple.com")
-                .setSubject(clientId)
-                .signWith(SignatureAlgorithm.ES256, getPrivateKey())
-                .compact();
+        String token = null;
+        try {
+            token = Jwts.builder()
+                    .setHeaderParam("kid", keyId)
+                    .setHeaderParam("alg", "ES256")
+                    .setIssuer(teamId)
+                    .setIssuedAt(new Date(System.currentTimeMillis()))
+                    .setExpiration(expirationDate)
+                    .setAudience("https://appleid.apple.com")
+                    .setSubject(clientId)
+                    .signWith(SignatureAlgorithm.ES256, getPrivateKey())
+                    .compact();
+        } catch (IOException e) {
+            log.error(e.toString());
+            throw new RuntimeException(e);
+        }
 
         tokenRedisTemplate.opsForValue().set("@APPLE", token);
         return token;

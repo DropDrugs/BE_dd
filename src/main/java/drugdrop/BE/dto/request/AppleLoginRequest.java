@@ -18,4 +18,6 @@ public class AppleLoginRequest {
     private String email;
     @NotBlank
     private String fcmToken;
+    @NotBlank
+    private String authCode;
 }
