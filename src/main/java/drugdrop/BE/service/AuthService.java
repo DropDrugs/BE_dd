@@ -167,7 +167,7 @@ public class AuthService {
 
 
     public Long signup(MemberSignupRequest request) {
-        if (memberRepository.existsByEmail(request.getEmail())) {
+        if (memberRepository.existsByEmailAndOauthProvider(request.getEmail(), OAuthProvider.NONE)) {
             throw new CustomException(ErrorCode.EXIST_MEMBER);
         }
         Member member = request.toMember(passwordEncoder);

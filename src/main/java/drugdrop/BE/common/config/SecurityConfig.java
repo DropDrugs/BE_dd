@@ -74,6 +74,7 @@ public class SecurityConfig {
             .authorizeRequests()
             // /board 경로에 대한 GET 요청은 모두 허용
             .antMatchers(HttpMethod.GET, "/board", "/board/**").permitAll()
+            .antMatchers(HttpMethod.GET, "/members/email/**", "/members/nickname/**").permitAll()
             // /board 및 /board/** 경로에 대한 POST, PUT, DELETE 요청은 ROLE_ADMIN만 허용
             .antMatchers(HttpMethod.POST, "/board", "/board/**").hasAuthority("ROLE_ADMIN")
             .antMatchers(HttpMethod.PUT, "/board", "/board/**").hasAuthority("ROLE_ADMIN")
