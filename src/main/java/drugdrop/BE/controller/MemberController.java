@@ -2,6 +2,7 @@ package drugdrop.BE.controller;
 
 import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
+import drugdrop.BE.dto.response.NotificationResponse;
 import drugdrop.BE.service.MemberService;
 import drugdrop.BE.common.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 
 @Validated
@@ -65,5 +67,12 @@ public class MemberController {
     public ResponseEntity<Void> buyMemberCharacter(@PathVariable @Min(0) @Max(31) Integer charId){
         memberService.buyMemberCharacter(SecurityUtil.getCurrentMemberId(), charId);
         return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @GetMapping("/alarm")
+    public ResponseEntity<List<NotificationResponse>> getMemberNotificationHistory(){
+        List<NotificationResponse> response = memberService.getMemberNotificationHistory(
+                SecurityUtil.getCurrentMemberId());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

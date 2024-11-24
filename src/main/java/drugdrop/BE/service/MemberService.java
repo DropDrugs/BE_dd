@@ -7,9 +7,11 @@ import drugdrop.BE.domain.Member;
 import drugdrop.BE.domain.TransactionType;
 import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
+import drugdrop.BE.dto.response.NotificationResponse;
 import drugdrop.BE.dto.response.NotificationSettingResponse;
 import drugdrop.BE.repository.LocationBadgeRepository;
 import drugdrop.BE.repository.MemberRepository;
+import drugdrop.BE.repository.NotificationRepository;
 import drugdrop.BE.repository.NotificationSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final NotificationSettingRepository notificationSettingRepository;
     private final LocationBadgeRepository locationBadgeRepository;
+    private final NotificationRepository notificationRepository;
     private final PointService pointService;
     private final Integer characterCost = 200;
 
@@ -123,6 +126,18 @@ public class MemberService {
         member.subPoint(characterCost);
         memberRepository.save(member);
         pointService.recordPointTransaction(member, TransactionType.CHARACTER_PURCHASE, -200, "none");
+    }
+
+    public List<NotificationResponse> getMemberNotificationHistory(Long memberId){
+        getMemberOrThrow(memberId);
+        return notificationRepository.findAllByMemberId(memberId).stream()
+                .map(n-> NotificationResponse.builder()
+                        .id(n.getId())
+                        .title(n.getTitle())
+                        .message(n.getMessage())
+                        .createdAt(n.getCreatedDate())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private Member getMemberOrThrow(Long memberId) {
