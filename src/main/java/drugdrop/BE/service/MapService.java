@@ -202,11 +202,11 @@ public class MapService {
 
     private BinLocationResponse BinLocationToBinLocationResponse(BinLocation bin) {
         String photo = bin.getLocationPhoto();
-        if(photo == null) {
-            photo = getLocationPhoto(bin.getName());
-            bin.setLocationPhoto(photo);
-            binLocationRepository.save(bin);
-        }
+//        if(photo == null) {
+//            photo = getLocationPhoto(bin.getName());
+//            bin.setLocationPhoto(photo);
+//            binLocationRepository.save(bin);
+//        }
         return BinLocationResponse.builder()
                 .id(bin.getId())
                 .address(bin.getAddress())
