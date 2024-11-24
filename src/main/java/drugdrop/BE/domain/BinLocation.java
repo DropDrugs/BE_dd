@@ -31,4 +31,7 @@ public class BinLocation extends BaseEntity {
     private String addrLvl2; // 시,군,구
     private String name;
     private String type; // 약국, 동사무소(주민센터,행정복지센터,면사무소), 우체국/통, 보건소(보건지소, 보건진료소)
+    private String locationPhoto;
+
+    public void setLocationPhoto(String photo){ this.locationPhoto = photo; }
 }
