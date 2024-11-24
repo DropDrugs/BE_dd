@@ -201,6 +201,12 @@ public class MapService {
     }
 
     private BinLocationResponse BinLocationToBinLocationResponse(BinLocation bin) {
+        String photo = bin.getLocationPhoto();
+        if(photo == null) {
+            photo = getLocationPhoto(bin.getName());
+            bin.setLocationPhoto(photo);
+            binLocationRepository.save(bin);
+        }
         return BinLocationResponse.builder()
                 .id(bin.getId())
                 .address(bin.getAddress())
@@ -210,7 +216,7 @@ public class MapService {
                 .type(bin.getType())
                 .addrLvl1(bin.getAddrLvl1())
                 .addrLvl2(bin.getAddrLvl2())
-                .locationPhoto(getLocationPhoto(bin.getName()))
+                .locationPhoto(photo)
                 .build();
     }
 
