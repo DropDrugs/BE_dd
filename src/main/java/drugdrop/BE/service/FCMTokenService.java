@@ -6,11 +6,13 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.concurrent.ExecutionException;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class FCMTokenService {
@@ -19,7 +21,9 @@ public class FCMTokenService {
 
     public void sendNotification(String title, String content, Long memberId, String extraInfo) {
         if(!hasKey(memberId)){
-            throw new CustomException(ErrorCode.FCM_TOKEN_INVALID);
+            log.error("FCM TOKEN INVALID ERROR");
+//            throw new CustomException(ErrorCode.FCM_TOKEN_INVALID);
+            return;
         }
         String token = getToken(memberId);
         Notification fcmNotification = Notification.builder()
@@ -58,7 +62,8 @@ public class FCMTokenService {
             FirebaseMessaging.getInstance().sendAsync(message).get();
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
-            throw new CustomException(ErrorCode.FCM_MESSAGE_FAILED);
+            log.error("FCM MESSAGE FAILED ERROR");
+//            throw new CustomException(ErrorCode.FCM_MESSAGE_FAILED);
         }
     }
 }
