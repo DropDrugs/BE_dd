@@ -77,6 +77,7 @@ public class MemberService {
                 .ownedChars(chars)
                 .notificationSetting(nr)
                 .locationBadges(badges)
+                .point(member.getPoint())
                 .build();
     }
 
