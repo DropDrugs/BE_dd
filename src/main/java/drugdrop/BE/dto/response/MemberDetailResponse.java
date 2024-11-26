@@ -12,7 +12,7 @@ public class MemberDetailResponse {
     private String email;
     private Integer selectedChar;
     private List<Integer> ownedChars;
-    private int point;
+    private Integer point;
     private NotificationSettingResponse notificationSetting;
     private List<String> locationBadges;
 }
