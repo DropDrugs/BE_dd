@@ -1,13 +1,13 @@
 package drugdrop.BE.common.oauth.platform.apple;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.common.oauth.OAuthApiClient;
 import drugdrop.BE.common.oauth.OAuthLoginParams;
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMParser;
@@ -26,10 +26,16 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.math.BigInteger;
+import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.RSAPublicKeySpec;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Date;
 import java.time.ZoneId;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -42,6 +48,7 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
 
     private String quitUrl = "https://appleid.apple.com/auth/revoke";
     private String tokenUrl = "https://appleid.apple.com/auth/token";
+    private String keyUrl = "https://appleid.apple.com/auth/keys";
 
     @Value("${apple.client-id}")
     private String clientId; // bundle id
@@ -148,5 +155,49 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
         PrivateKeyInfo object = (PrivateKeyInfo) pemParser.readObject();
         return converter.getPrivateKey(object);
+    }
+
+    public String getSubFromIdToken(String idToken){
+
+        try{
+            // 애플서버에 public key(n,e값) 요청
+            ApplePublicKeyResponse response = getAppleAuthPublicKey();
+
+            String headerOfIdentityToken = idToken.substring(0, idToken.indexOf("."));
+            Map<String, String> header = new ObjectMapper().readValue(
+                    new String(Base64.getDecoder().decode(headerOfIdentityToken), "UTF-8"), Map.class);
+            ApplePublicKeyResponse.Key key = response.getMatchedKeyBy(header.get("kid"), header.get("alg"))
+                    .orElseThrow(() -> new NullPointerException("Unmatch public key from apple's id server."));
+
+            byte[] nBytes = Base64.getUrlDecoder().decode(key.getN());
+            byte[] eBytes = Base64.getUrlDecoder().decode(key.getE());
+
+            BigInteger n = new BigInteger(1, nBytes);
+            BigInteger e = new BigInteger(1, eBytes);
+
+            // public key 생성
+            RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(n, e);
+            KeyFactory keyFactory = KeyFactory.getInstance(key.getKty());
+            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+            // 유효성 검증
+            return Jwts.parser().setSigningKey(publicKey).parseClaimsJws(idToken).getBody().getSubject();
+
+        } catch (Exception e){
+            log.error(e.toString());
+            throw new CustomException(ErrorCode.ID_TOKEN_INVALID);
+        }
+    }
+
+    private ApplePublicKeyResponse getAppleAuthPublicKey(){
+        String url = keyUrl;
+
+        ResponseEntity<ApplePublicKeyResponse> response = restTemplate.exchange(url, HttpMethod.GET, HttpEntity.EMPTY,
+                ApplePublicKeyResponse.class);
+        if(response.getStatusCode() != HttpStatus.OK){
+            log.error("Apple pub key error\n" + response.toString());
+            throw new CustomException(ErrorCode.PUBKEY_ERROR);
+        }
+        return response.getBody();
     }
 }

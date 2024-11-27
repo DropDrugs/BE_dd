@@ -14,4 +14,5 @@ import javax.validation.constraints.NotNull;
 public class QuitRequest {
     @NotNull
     private String accessToken;
+    private String authCode;
 }

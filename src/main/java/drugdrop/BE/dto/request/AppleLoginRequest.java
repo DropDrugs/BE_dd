@@ -13,11 +13,9 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class AppleLoginRequest {
 
-    private String name;
-    @NotBlank
-    private String email;
     @NotBlank
     private String fcmToken;
     @NotBlank
+    private String idToken;
     private String authCode;
 }

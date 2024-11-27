@@ -52,7 +52,7 @@ public class AuthService {
     }
 
     public TokenDto appleLogin(AppleLoginRequest request){
-        return makeTokenDto(findOrCreateUser(request.getName(), request.getEmail(), request.getAuthCode()));
+        return makeTokenDto(findOrCreateUser(request.getIdToken(), request.getAuthCode()));
     }
 
     public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
@@ -77,16 +77,22 @@ public class AuthService {
         return token;
     }
 
-    private Map<String, Object> findOrCreateUser(String name, String email, String authCode) {
+    private Map<String, Object> findOrCreateUser(String idToken, String authCode) {
+
+        String sub = appleApiClient.getSubFromIdToken(idToken);
 
         Map<String, Object> idAndIfNew = new HashMap<>();
         Boolean isNewUser = false;
-        Member member = memberRepository.findByEmailAndOauthProvider(email, OAuthProvider.APPLE);
+
+        Member member = memberRepository.findByOauthIdAndOauthProvider(sub, OAuthProvider.APPLE);
         if (member == null){
-            member = newUser(name, email, OAuthProvider.APPLE);
+            member = newUser(sub, OAuthProvider.APPLE);
             isNewUser = true;
-            String refreshToken = appleApiClient.getRefreshTokenFromCode(authCode);
-            member.setProviderAccessToken(refreshToken);
+
+            if(authCode != null) {
+                String refreshToken = appleApiClient.getRefreshTokenFromCode(authCode);
+                member.setProviderAccessToken(refreshToken);
+            }
             memberRepository.save(member);
         }
 
@@ -136,10 +142,9 @@ public class AuthService {
         return idAndIfNew;
     }
 
-    private Member newUser(String name, String email, OAuthProvider provider) {
+    private Member newUser(String sub, OAuthProvider provider) {
         Member member = Member.builder()
-                .email(email)
-                .nickname(name)
+                .oauthId(sub)
                 .oauthProvider(provider)
                 .build();
         return memberRepository.save(member);
@@ -228,7 +233,11 @@ public class AuthService {
             firebaseAuth.deleteUser(uid);
 
         }else if(member.getOauthProvider() == OAuthProvider.APPLE){
-            requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.APPLE);
+            String providerRefreshToken = member.getProviderAccessToken();
+            if(providerRefreshToken == null){
+                providerRefreshToken = appleApiClient.getRefreshTokenFromCode(request.getAuthCode());
+            }
+            requestOAuthInfoService.quit(providerRefreshToken, OAuthProvider.APPLE);
         }
 
         tokenProvider.deleteRefreshToken(accessToken);
