@@ -1,5 +1,6 @@
 package drugdrop.BE.dto.request;
 
+import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.domain.Authority;
 import drugdrop.BE.domain.Member;
 import lombok.AllArgsConstructor;
@@ -32,6 +33,7 @@ public class MemberSignupRequest {
                 .password(passwordEncoder.encode(password))
                 .authority(Authority.ROLE_USER)
                 .nickname(name)
+                .oauthProvider(OAuthProvider.NONE)
                 .build();
     }
 

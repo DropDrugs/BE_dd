@@ -1,6 +1,5 @@
 package drugdrop.BE.service;
 
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -13,7 +12,6 @@ import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.common.oauth.RequestOAuthInfoService;
 import drugdrop.BE.common.oauth.dto.OAuthUserProfile;
 import drugdrop.BE.common.oauth.platform.apple.AppleApiClient;
-import drugdrop.BE.common.oauth.platform.apple.AppleInfoResponse;
 import drugdrop.BE.common.oauth.platform.google.GoogleLoginParams;
 import drugdrop.BE.common.oauth.platform.kakao.KakaoInfoResponse;
 import drugdrop.BE.domain.Member;
@@ -81,8 +79,25 @@ public class AuthService {
         return makeTokenDto(findOrCreateUserFromOAuth(oAuthInfoResponse));
     }
 
-    public TokenDto kakaoLogin(OAuthLoginRequest request){
+    public TokenDto kakaoLoginV2(OAuthLoginRequest request){
         TokenDto tokenDto =  makeTokenDto(findOrCreateUserFromOAuth(new KakaoInfoResponse(request.getAccessToken(), request.getAccessToken())));
+        fcmTokenService.saveToken(tokenDto.getUserId(), request.getFcmToken());
+        return tokenDto;
+    }
+
+    public TokenDto kakaoLogin(KakaoLoginRequest request){
+
+        Member member = memberRepository.findByEmailAndOauthProvider(request.getEmail(), OAuthProvider.KAKAO);
+        Boolean isNewUser = false;
+
+        if (member == null) { // Signup
+            isNewUser = true;
+            member = request.toMember();
+            memberRepository.save(member);
+        }
+        TokenDto tokenDto = tokenProvider.generateTokenDto(member.getId().toString());
+        tokenDto.setIsNewUser(isNewUser);
+
         fcmTokenService.saveToken(tokenDto.getUserId(), request.getFcmToken());
         return tokenDto;
     }
@@ -194,7 +209,6 @@ public class AuthService {
             throw new CustomException(ErrorCode.EXIST_MEMBER);
         }
         Member member = request.toMember(passwordEncoder);
-        member.setDefaultOauthProvider();
         return memberRepository.save(member).getId();
     }
 
@@ -243,7 +257,8 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
 
         if(member.getOauthProvider() == OAuthProvider.KAKAO) {
-            requestOAuthInfoService.quit(member.getOauthId(), OAuthProvider.KAKAO);
+//            requestOAuthInfoService.quit(member.getOauthId(), OAuthProvider.KAKAO);
+
 
         }else if(member.getOauthProvider() == OAuthProvider.GOOGLE){
             FirebaseToken firebaseToken = checkFirebaseToken(member.getProviderAccessToken());
