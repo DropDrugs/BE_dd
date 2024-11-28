@@ -43,20 +43,36 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final RequestOAuthInfoService requestOAuthInfoService;
+    private final FCMTokenService fcmTokenService;
     private final AppleApiClient appleApiClient;
-    private final FirebaseApp firebaseApp;
     private final FirebaseAuth firebaseAuth;
 
-    public TokenDto appleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
-        return makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.APPLE));
+    public TokenDto checkTokenAndAppleLoginFirebase(FirebaseAuthLoginRequest request){
+        FirebaseToken firebaseToken = checkFirebaseToken(request.getIdToken());
+        return appleLoginFirebase(request.getIdToken(), firebaseToken, request.getFcmToken());
+    }
+
+    public TokenDto appleLoginFirebase(String tokenString, FirebaseToken firebaseToken, String fcmToken){
+        TokenDto tokenDto = makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.APPLE));
+        fcmTokenService.saveToken(tokenDto.getUserId(), fcmToken);
+        return tokenDto;
     }
 
     public TokenDto appleLogin(AppleLoginRequest request){
-        return makeTokenDto(findOrCreateUser(request.getIdToken(), request.getAuthCode()));
+        TokenDto tokenDto = makeTokenDto(findOrCreateUser(request.getIdToken(), request.getAuthCode()));
+        fcmTokenService.saveToken(tokenDto.getUserId(), request.getFcmToken());
+        return tokenDto;
     }
 
-    public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken){
-        return makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.GOOGLE));
+    public TokenDto checkTokenAndGoogleLoginFirebase(FirebaseAuthLoginRequest request){
+        FirebaseToken firebaseToken = checkFirebaseToken(request.getIdToken());
+        return googleLoginFirebase(request.getIdToken(), firebaseToken, request.getFcmToken());
+    }
+
+    public TokenDto googleLoginFirebase(String tokenString, FirebaseToken firebaseToken, String fcmToken){
+        TokenDto tokenDto = makeTokenDto(findOrCreateUserFromFirebase(tokenString, firebaseToken, OAuthProvider.GOOGLE));
+        fcmTokenService.saveToken(tokenDto.getUserId(), fcmToken);
+        return tokenDto;
     }
 
     public TokenDto getGoogleAccessToken(String authCode){
@@ -66,7 +82,9 @@ public class AuthService {
     }
 
     public TokenDto kakaoLogin(OAuthLoginRequest request){
-        return makeTokenDto(findOrCreateUserFromOAuth(new KakaoInfoResponse(request.getAccessToken(), request.getAccessToken())));
+        TokenDto tokenDto =  makeTokenDto(findOrCreateUserFromOAuth(new KakaoInfoResponse(request.getAccessToken(), request.getAccessToken())));
+        fcmTokenService.saveToken(tokenDto.getUserId(), request.getFcmToken());
+        return tokenDto;
     }
 
     private TokenDto makeTokenDto(Map<String, Object> idAndIsNew){
@@ -241,7 +259,9 @@ public class AuthService {
         }
 
         tokenProvider.deleteRefreshToken(accessToken);
+        fcmTokenService.deleteToken(Long.valueOf(userId));
         memberRepository.delete(member);
+
         return Long.valueOf(userId);
     }
 

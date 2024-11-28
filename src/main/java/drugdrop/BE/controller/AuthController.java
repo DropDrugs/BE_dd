@@ -26,7 +26,6 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    private final FCMTokenService fcmTokenService;
 
 
     @PostMapping("/signup/pw")
@@ -41,37 +40,30 @@ public class AuthController {
     @PostMapping("/login/pw")
     public ResponseEntity<TokenDto> login(@RequestBody @Valid MemberLoginRequest request) {
         TokenDto response = authService.login(request);
-        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/google")
     public ResponseEntity<TokenDto> googleLogin(@RequestBody @Valid FirebaseAuthLoginRequest request){
-        FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
-        TokenDto response = authService.googleLoginFirebase(request.getIdToken(), firebaseToken);
-        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        TokenDto response = authService.checkTokenAndGoogleLoginFirebase(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/apple/firebase")
     public ResponseEntity<TokenDto> appleLoginFirebase(@RequestBody @Valid FirebaseAuthLoginRequest request){
-        FirebaseToken firebaseToken = authService.checkFirebaseToken(request.getIdToken());
-        TokenDto response = authService.appleLoginFirebase(request.getIdToken(), firebaseToken);
-        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
+        TokenDto response = authService.checkTokenAndAppleLoginFirebase(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/apple")
     public ResponseEntity<TokenDto> appleLogin(@RequestBody @Valid AppleLoginRequest request){
         TokenDto response = authService.appleLogin(request);
-        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("login/kakao")
     public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request){
         TokenDto response = authService.kakaoLogin(request);
-        fcmTokenService.saveToken(response.getUserId(), request.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
@@ -95,8 +87,7 @@ public class AuthController {
 
     @PostMapping("/quit")
     public ResponseEntity<Void> quit(@RequestBody @Valid QuitRequest request) throws IOException, FirebaseAuthException {
-        Long memberId = authService.quit(request);
-        fcmTokenService.deleteToken(memberId);
+        authService.quit(request);
         return new ResponseEntity(HttpStatus.OK);
     }
 }
