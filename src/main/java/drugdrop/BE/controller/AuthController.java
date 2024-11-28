@@ -1,12 +1,10 @@
 package drugdrop.BE.controller;
 
 import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseToken;
 import drugdrop.BE.common.jwt.TokenDto;
 import drugdrop.BE.dto.request.*;
 import drugdrop.BE.dto.response.IdResponse;
 import drugdrop.BE.service.AuthService;
-import drugdrop.BE.service.FCMTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -61,8 +59,14 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("login/kakao/v2")
+    public ResponseEntity<TokenDto> kakaoLoginV2(@RequestBody @Valid OAuthLoginRequest request){
+        TokenDto response = authService.kakaoLoginV2(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("login/kakao")
-    public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid OAuthLoginRequest request){
+    public ResponseEntity<TokenDto> kakaoLogin(@RequestBody @Valid KakaoLoginRequest request){
         TokenDto response = authService.kakaoLogin(request);
         return ResponseEntity.ok(response);
     }
