@@ -13,6 +13,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -76,9 +77,17 @@ public class KakaoApiClient implements OAuthApiClient { // Kakao 로그인 토�
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
 
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request,String.class);
-        log.info(response.getBody());
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+        } catch (HttpClientErrorException e) {
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
+            log.error(e.toString());
+            throw new CustomException(ErrorCode.QUIT_ERROR);
+        }
+
         if(response.getStatusCode() != HttpStatus.OK){
+            log.info("kakao Quit Response\n"+response.getBody());
             throw new CustomException(ErrorCode.QUIT_ERROR);
         }
     }
