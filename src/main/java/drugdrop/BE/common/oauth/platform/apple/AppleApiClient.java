@@ -59,6 +59,9 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
     @Value("${apple.team-id}")
     private String teamId;
 
+    @Value("${apple.redirect-uri}")
+    private String redirectURI;
+
     private final RestTemplate restTemplate; // 외부 요청 후 미리 정의해둔 AppleTokens, AppleInfoResponse 로 응답값을 받는다
 
     @Override
@@ -84,6 +87,7 @@ public class AppleApiClient implements OAuthApiClient { // Apple 로그인 토�
         body.add("client_secret", getClientSecret());
         body.add("code", code);
         body.add("grant_type", "authorization_code");
+        body.add("redirect_uri", redirectURI);
 
         HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
         ResponseEntity<AppleTokenResponse> response = restTemplate.exchange(url, HttpMethod.POST,
