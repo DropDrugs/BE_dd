@@ -33,6 +33,9 @@ public class KakaoApiClient implements OAuthApiClient { // Kakao 로그인 토�
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
 
+    @Value("${kakao.service-key}")
+    private String serviceKey;
+
     private final RestTemplate restTemplate; // 외부 요청 후 미리 정의해둔 KakaoTokens, KakaoInfoResponse 로 응답값을 받는다
 
     @Override
@@ -67,14 +70,16 @@ public class KakaoApiClient implements OAuthApiClient { // Kakao 로그인 토�
     }
 
     @Override
-    public void quit(String accessToken){ // 카카오에서 발급한 accessToken revoke 신청
+    public void quit(String oauthId){
         String url = quitUrl;
 
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setBearerAuth(accessToken);
+        httpHeaders.set("Authorization", "KakaoAK " + serviceKey);
         httpHeaders.setContentType(MediaType.valueOf("application/x-www-form-urlencoded;charset=UTF-8"));
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("target_id_type", "user_id");
+        body.add("target_id", oauthId);
         HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
 
         ResponseEntity<String> response;

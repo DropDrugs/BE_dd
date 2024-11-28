@@ -243,7 +243,7 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
 
         if(member.getOauthProvider() == OAuthProvider.KAKAO) {
-            requestOAuthInfoService.quit(member.getProviderAccessToken(), OAuthProvider.KAKAO);
+            requestOAuthInfoService.quit(member.getOauthId(), OAuthProvider.KAKAO);
 
         }else if(member.getOauthProvider() == OAuthProvider.GOOGLE){
             FirebaseToken firebaseToken = checkFirebaseToken(member.getProviderAccessToken());
