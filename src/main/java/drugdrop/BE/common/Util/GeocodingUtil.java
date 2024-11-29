@@ -1,6 +1,10 @@
 package drugdrop.BE.common.Util;
 
+import drugdrop.BE.common.oauth.platform.kakao.KakaoProfileResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -13,14 +17,25 @@ import java.util.Map;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
+@Slf4j
+@RequiredArgsConstructor
 @Component
 public class GeocodingUtil {
 
     @Value("${application.spring.cloud.gcp.geocodingAPI}")
     private String API_KEY;
 
-    public Map<String, String> getCoordsByAddress(String completeAddress) {
+    @Value("${kakao.map.key}")
+    private String kakaoKey;
+
+    private final RestTemplate restTemplate;
+
+    public Map<String, String> getCoordsByAddressV1(String completeAddress) { // Google Map API
 
         try {
             String surl = "https://maps.googleapis.com/maps/api/geocode/json?address="+ URLEncoder.encode(completeAddress, "UTF-8")+
@@ -63,5 +78,33 @@ public class GeocodingUtil {
         }
 
         return null;
+    }
+
+    public Map<String, String> getCoordsByAddress(String completeAddress) { // Kakao Map API
+        String url = "https://dapi.kakao.com/v2/local/search/address.json?query=" + completeAddress
+                +"&page=1&size=1";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("Authorization", "KakaoAK " + kakaoKey);
+        httpHeaders.setContentType(MediaType.valueOf("application/json;charset=UTF-8"));
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+
+        Map<String, String> ret = new HashMap<String, String>();
+        try {
+            ResponseEntity<GeocodingResponse> response = restTemplate.exchange(url, HttpMethod.GET, request,
+                    GeocodingResponse.class);
+            GeocodingResponse.Document document = response.getBody().getDocuments().get(0);
+            ret.put("lat", document.getY());
+            ret.put("lng", document.getX());
+
+        } catch (HttpClientErrorException e){
+            log.error(e.toString());
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
+            ret.put("lat", "0");
+            ret.put("lng", "0");
+        }
+        return ret;
     }
 }
