@@ -18,21 +18,20 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             "YEAR(t.createdDate), MONTH(t.createdDate), COUNT(t)) " +
             "FROM PointTransaction t " +
             "WHERE t.member.id = :memberId " +
-            "AND t.type IN (:disposalTypes) " +
+            "AND t.type !=  'CHARACTER_PURCHASE' " +
             "AND t.createdDate >= :startDate " +
             "GROUP BY YEAR(t.createdDate), MONTH(t.createdDate) " +
             "ORDER BY YEAR(t.createdDate), MONTH(t.createdDate)")
     List<MonthlyDisposalCountResponse> findMonthlyDisposalCountByMemberId(
             @Param("memberId") Long memberId,
-            @Param("disposalTypes") List<TransactionType> disposalTypes,
             @Param("startDate") LocalDateTime startDate
     );
 
     @Query("SELECT new drugdrop.BE.domain.MemberLatestTransaction(pt.member, MAX(pt.createdDate)) " +
             "FROM PointTransaction pt " +
-            "WHERE pt.type IN :types " +
+            "WHERE pt.type != 'CHARACTER_PURCHASE' " +
             "GROUP BY pt.member")
-    List<PointTransaction> findLatestTransactionsForMembers(List<String> types);
+    List<PointTransaction> findLatestTransactionsForMembers();
 
     long countByMemberIdAndLocation(Long memberId, String location);
 

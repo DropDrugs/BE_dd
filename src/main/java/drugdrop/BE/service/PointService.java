@@ -48,19 +48,17 @@ public class PointService {
         memberRepository.save(member);
         recordPointTransaction(member, TransactionType.valueOf(type), point, location);
         switch(type){
-            case "PHOTO_CERTIFICATION" :
-                sendNotification(options[0], member, "폐기사진 인증 리워드 적립",
+            case "GENERAL_PHOTO_CERTIFICATION" :
+                sendNotification(options[0], member, "일반 사진 인증",
                         "올바른 폐의약품 분리배출 실천을 인증하여 100 포인트를 받았어요!");
                 break;
-            case "GENERAL_CERTIFICATION" :
-                sendNotification(options[0], member, "폐기 일반 인증 리워드 적립", "\uD83E\uDD17"); //🤗
-                break;
-            case "LOCATION_INQUIRY" :
-                sendNotification(options[0], member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
-                break;
             case "DRUG_PHOTO_CERTIFICATION" :
-                sendNotification(options[0], member, "처방약 폐기 사진 인증",
-                        "사용기한이 지난 처방약을 올바르게 분리배출하여 150포인트를 받았어요!");
+                sendNotification(options[0], member, "처방약 사진 인증",
+                        "사용기한이 지난 처방약을 올바르게 분리배출하여 150 포인트를 받았어요!");
+                break;
+            case "GENERAL_CERTIFICATION" :
+                sendNotification(options[0], member, "일반 인증",
+                        "집에 있는 폐의약품을 배출하여 50 포인트를 받았어요!");
                 break;
         }
         Boolean getBadge = checkLocationBadge(member, location);
@@ -99,10 +97,7 @@ public class PointService {
     public List<MonthlyDisposalCountResponse> getMonthlyDisposalStats(Long memberId){
         Member member = getMemberOrThrow(memberId);
         LocalDateTime startDate = LocalDate.now().minusYears(1).atStartOfDay(); // 현재 날짜로부터 1년 전
-        List<TransactionType> disposalTypes = List.of(
-                TransactionType.PHOTO_CERTIFICATION,
-                TransactionType.GENERAL_CERTIFICATION);
-        return pointTransactionRepository.findMonthlyDisposalCountByMemberId(memberId, disposalTypes, startDate);
+        return pointTransactionRepository.findMonthlyDisposalCountByMemberId(memberId, startDate);
 
     }
 
@@ -125,9 +120,7 @@ public class PointService {
     public void sendDisposalReminderNotification(){
         LocalDate ninetyDaysAgo = LocalDate.now().minusDays(90);
 
-        List<PointTransaction> transactions = pointTransactionRepository.findLatestTransactionsForMembers(
-                List.of(TransactionType.PHOTO_CERTIFICATION.toString()
-                        , TransactionType.GENERAL_CERTIFICATION.toString()));
+        List<PointTransaction> transactions = pointTransactionRepository.findLatestTransactionsForMembers();
         for(PointTransaction t : transactions){
             if (t.getCreatedDate().toLocalDate().isBefore(ninetyDaysAgo)) {
                 sendNotification(options[1], t.getMember(), "폐기 리마인드 알림",

@@ -70,7 +70,7 @@ public class DrugService {
         List<Drug> drugs = drugRepository.findAll();
         for(Drug drug : drugs){
             if(!drug.getDate().plusDays(drug.getCount()-1).isBefore(LocalDate.now()))
-                sendNotification(options[0],drug.getMember(), "약 복용 알림 (아침)", "약 드실 시간이에요!");
+                sendNotification(options[0],drug.getMember(), "약 복용 알림", "약을 복용할 시간입니다!");
         }
     }
 
@@ -79,7 +79,7 @@ public class DrugService {
         List<Drug> drugs = drugRepository.findAll();
         for(Drug drug : drugs){
             if(!drug.getDate().plusDays(drug.getCount()-1).isBefore(LocalDate.now()))
-                sendNotification(options[0],drug.getMember(), "약 복용 알림 (점심)", "약 드실 시간이에요!");
+                sendNotification(options[0],drug.getMember(), "약 복용 알림", "약을 복용할 시간입니다!");
         }
     }
 
@@ -92,7 +92,7 @@ public class DrugService {
                         "약을 모두 드셨으면 약을 삭제해주세요.");
             }
             if(!drug.getDate().plusDays(drug.getCount()-1).isBefore(LocalDate.now())) {
-                sendNotification(options[0],drug.getMember(), "약 복용 알림 (저녁)", "약 드실 시간이에요!");
+                sendNotification(options[0],drug.getMember(), "약 복용 알림", "약을 복용할 시간입니다!");
             }
         }
     }
