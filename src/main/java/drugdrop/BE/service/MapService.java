@@ -1,6 +1,7 @@
 package drugdrop.BE.service;
 
 
+import drugdrop.BE.common.Util.GeocodingResponse;
 import drugdrop.BE.common.Util.GeocodingUtil;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
@@ -9,6 +10,7 @@ import drugdrop.BE.dto.request.CoordRequest;
 import drugdrop.BE.dto.response.BinLocationResponse;
 import drugdrop.BE.dto.response.MapDetailResponse;
 import drugdrop.BE.dto.response.MapResponse;
+import drugdrop.BE.dto.response.SearchImageResponse;
 import drugdrop.BE.repository.BinLocationRepository;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -20,14 +22,20 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,6 +50,14 @@ public class MapService {
 
     @Value("${application.spring.cloud.gcp.placeAPI}")
     private String API_KEY;
+
+    @Value("${naver.search.client-id}")
+    private String naverClientId;
+
+    @Value("${naver.search.client-secret}")
+    private String naverClientSecret;
+
+    private final RestTemplate restTemplate;
 
 
     private String checkType(String name){
@@ -220,7 +236,30 @@ public class MapService {
                 .build();
     }
 
-    private String getLocationPhoto(String name)  {
+    private String getLocationPhoto(String name){ // Naver Image Search API
+        String url = "https://openapi.naver.com/v1/search/image?query=" + name+"&display=1";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("X-Naver-Client-Id", naverClientId);
+        httpHeaders.set("X-Naver-Client-Secret", naverClientSecret);
+        httpHeaders.set("Accept", "*/*");
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+
+        try {
+            ResponseEntity<SearchImageResponse> response = restTemplate.exchange(url, HttpMethod.GET, request,
+                    SearchImageResponse.class);
+            return response.getBody().getItems().get(0).getLink();
+
+        } catch (HttpClientErrorException e){
+            log.error(e.toString());
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
+        }
+        return null;
+    }
+
+    private String getLocationPhotoGoogle(String name)  {
         try {
             List<MapResponse> response = searchLocations(name);
             return response.get(0).getLocationPhoto();
