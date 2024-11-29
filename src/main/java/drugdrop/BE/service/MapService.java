@@ -1,7 +1,6 @@
 package drugdrop.BE.service;
 
 
-import drugdrop.BE.common.Util.GeocodingResponse;
 import drugdrop.BE.common.Util.GeocodingUtil;
 import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
@@ -35,7 +34,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
