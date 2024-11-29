@@ -49,13 +49,18 @@ public class PointService {
         recordPointTransaction(member, TransactionType.valueOf(type), point, location);
         switch(type){
             case "PHOTO_CERTIFICATION" :
-                sendNotification(options[0], member, "폐기사진 인증 리워드 적립", "\uD83E\uDD17");
+                sendNotification(options[0], member, "폐기사진 인증 리워드 적립",
+                        "올바른 폐의약품 분리배출 실천을 인증하여 100 포인트를 받았어요!");
                 break;
             case "GENERAL_CERTIFICATION" :
                 sendNotification(options[0], member, "폐기 일반 인증 리워드 적립", "\uD83E\uDD17"); //🤗
                 break;
             case "LOCATION_INQUIRY" :
                 sendNotification(options[0], member, "폐기 장소 문의 리워드 적립", "\uD83E\uDD17");
+                break;
+            case "DRUG_PHOTO_CERTIFICATION" :
+                sendNotification(options[0], member, "처방약 폐기 사진 인증",
+                        "사용기한이 지난 처방약을 올바르게 분리배출하여 150포인트를 받았어요!");
                 break;
         }
         Boolean getBadge = checkLocationBadge(member, location);
