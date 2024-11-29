@@ -52,14 +52,8 @@ public class MapController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<MapResponse>> searchLocations(@RequestParam String name) throws IOException, ParseException {
-        List<MapResponse> responses = mapService.searchLocations(name);
+    public ResponseEntity<List<MapResponse>> searchLocationByName(@RequestParam String name) throws IOException, ParseException {
+        List<MapResponse> responses = mapService.searchLocationByName(name);
         return ResponseEntity.status(HttpStatus.OK).body(responses);
-    }
-
-    @GetMapping("/detail")
-    public ResponseEntity<MapDetailResponse> getLocationDetail(@RequestParam String id) throws IOException, ParseException {
-        MapDetailResponse response = mapService.searchLocationDetail(id);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

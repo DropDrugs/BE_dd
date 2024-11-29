@@ -1,6 +1,5 @@
 package drugdrop.BE.common.Util;
 
-import drugdrop.BE.common.oauth.platform.kakao.KakaoProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +31,12 @@ public class GeocodingUtil {
 
     @Value("${kakao.map.key}")
     private String kakaoKey;
+
+    @Value("${naver.map.client-id}")
+    private String naverClientId;
+
+    @Value("${naver.map.client-secret}")
+    private String naverClientSecret;
 
     private final RestTemplate restTemplate;
 
@@ -80,7 +85,7 @@ public class GeocodingUtil {
         return null;
     }
 
-    public Map<String, String> getCoordsByAddress(String completeAddress) { // Kakao Map API
+    public Map<String, String> getCoordsByAddressV2(String completeAddress) { // Kakao Map API
         String url = "https://dapi.kakao.com/v2/local/search/address.json?query=" + completeAddress
                 +"&page=1&size=1";
 
@@ -93,11 +98,39 @@ public class GeocodingUtil {
 
         Map<String, String> ret = new HashMap<String, String>();
         try {
-            ResponseEntity<GeocodingResponse> response = restTemplate.exchange(url, HttpMethod.GET, request,
-                    GeocodingResponse.class);
-            GeocodingResponse.Document document = response.getBody().getDocuments().get(0);
+            ResponseEntity<GeocodingResponseV2> response = restTemplate.exchange(url, HttpMethod.GET, request,
+                    GeocodingResponseV2.class);
+            GeocodingResponseV2.Document document = response.getBody().getDocuments().get(0);
             ret.put("lat", document.getY());
             ret.put("lng", document.getX());
+
+        } catch (HttpClientErrorException e){
+            log.error(e.toString());
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
+            ret.put("lat", "0");
+            ret.put("lng", "0");
+        }
+        return ret;
+    }
+
+    public Map<String, String> getCoordsByAddress(String completeAddress) { // Naver Map API
+        String url = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=" + completeAddress+"&count=1";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("x-ncp-apigw-api-key-id", naverClientId);
+        httpHeaders.set("x-ncp-apigw-api-key", naverClientSecret);
+        httpHeaders.set("Accept", "application/json");
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+
+        Map<String, String> ret = new HashMap<String, String>();
+        try {
+            ResponseEntity<GeocodingResponse> response = restTemplate.exchange(url, HttpMethod.GET, request,
+                    GeocodingResponse.class);
+            GeocodingResponse.Address address = response.getBody().getAddresses().get(0);
+            ret.put("lat", address.getY());
+            ret.put("lng", address.getX());
 
         } catch (HttpClientErrorException e){
             log.error(e.toString());

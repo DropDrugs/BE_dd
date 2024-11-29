@@ -6,9 +6,7 @@ import drugdrop.BE.common.exception.CustomException;
 import drugdrop.BE.common.exception.ErrorCode;
 import drugdrop.BE.domain.BinLocation;
 import drugdrop.BE.dto.request.CoordRequest;
-import drugdrop.BE.dto.response.BinLocationResponse;
-import drugdrop.BE.dto.response.MapDetailResponse;
-import drugdrop.BE.dto.response.MapResponse;
+import drugdrop.BE.dto.response.*;
 import drugdrop.BE.repository.BinLocationRepository;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -20,8 +18,13 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -42,6 +45,14 @@ public class MapService {
 
     @Value("${application.spring.cloud.gcp.placeAPI}")
     private String API_KEY;
+
+    @Value("${naver.search.client-id}")
+    private String naverClientId;
+
+    @Value("${naver.search.client-secret}")
+    private String naverClientSecret;
+
+    private final RestTemplate restTemplate;
 
 
     private String checkType(String name){
@@ -220,168 +231,67 @@ public class MapService {
                 .build();
     }
 
-    private String getLocationPhoto(String name)  {
+    private String getLocationPhoto(String name){ // Naver Image Search API
+        String url = "https://openapi.naver.com/v1/search/image?query=" + name+"&display=1";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("X-Naver-Client-Id", naverClientId);
+        httpHeaders.set("X-Naver-Client-Secret", naverClientSecret);
+        httpHeaders.set("Accept", "*/*");
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+
         try {
-            List<MapResponse> response = searchLocations(name);
-            return response.get(0).getLocationPhoto();
-        }catch (Exception e){
+            ResponseEntity<SearchImageResponse> response = restTemplate.exchange(url, HttpMethod.GET, request,
+                    SearchImageResponse.class);
+            return response.getBody().getItems().get(0).getLink();
+
+        } catch (HttpClientErrorException e){
             log.error(e.toString());
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
+        }
+        return null;
+    }
+
+    public List<MapResponse> searchLocationByName(String name){
+        String url = "https://openapi.naver.com/v1/search/local.json?query=" + name;
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("X-Naver-Client-Id", naverClientId);
+        httpHeaders.set("X-Naver-Client-Secret", naverClientSecret);
+        httpHeaders.set("Accept", "*/*");
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<?> request = new HttpEntity<>(body, httpHeaders);
+
+        try {
+            ResponseEntity<SearchPlaceResponse> httpResponse = restTemplate.exchange(url, HttpMethod.GET, request,
+                    SearchPlaceResponse.class);
+            List<SearchPlaceResponse.Item> items = httpResponse.getBody().getItems();
+
+            return items.stream()
+                    .map(i -> {
+                        String locationName = i.getTitle().replaceAll("<\\/b>|<b>", "");
+                        // WGS84 좌표계
+                        String lat = i.getMapy().substring(0, 2) + "." + i.getMapy().substring(2);
+                        String lng = i.getMapx().substring(0, 3) + "." + i.getMapx().substring(3);
+
+                        return MapResponse.builder()
+                                .locationName(locationName)
+                                .locationAddress(i.getRoadAddress())
+                                .latitude(lat)
+                                .longitude(lng)
+                                .locationPhoto(getLocationPhoto(locationName))
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+        } catch (HttpClientErrorException e){
+            log.error(e.toString());
+            System.out.println("Error response body: " + e.getResponseBodyAsString());
             throw new CustomException(ErrorCode.MAP_ERROR);
         }
-    }
-
-    public List<MapResponse> getNearbyPharmacyAndConvenienceLocations(CoordRequest coordRequest) throws IOException, ParseException {
-        String requestUrl = "https://places.googleapis.com/v1/places:searchNearby";
-        StringBuilder requestBody = new StringBuilder();
-        requestBody.append("{\"includedTypes\":[\"pharmacy\",\"convenience_store\"],"); // 약국, 편의점 검색
-        requestBody.append("\"locationRestriction\":{" +
-                "\"circle\":{" +
-                     "\"center\":{" +
-                    "\"latitude\":"+ coordRequest.getLatitude() +
-                    ",\"longitude\":" + coordRequest.getLongitude() + "}," +
-                "\"radius\": 1000.0 } }," +
-            "\"languageCode\":\"ko\"}");
-
-        return getLocationsDetail(requestUrl,requestBody.toString());
-    }
-
-    // 위치 검색하기
-    public List<MapResponse> searchLocations(String name) throws IOException, ParseException {
-        String requestUrl = "https://places.googleapis.com/v1/places:searchText";
-        String requestBody = "{\"textQuery\":\""+ name+"\"," +
-                "\"languageCode\":\"ko\"}";
-
-        return getLocationsDetail(requestUrl,requestBody);
-    }
-
-    // 장소 세부사항
-    public MapDetailResponse searchLocationDetail(String id) throws IOException, ParseException {
-        String requestUrl = "https://places.googleapis.com/v1/places/"+id;
-        return getLocationDetail(requestUrl);
-    }
-
-    private List<MapResponse> getLocationsDetail(String requestUrl, String requestBody) throws IOException, ParseException {
-        URL url = new URL(requestUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type","application/json");
-        conn.setRequestProperty("X-Goog-Api-key",API_KEY);
-        conn.setRequestProperty("X-Goog-FieldMask","places.displayName,places.formattedAddress,places.id,places.photos");
-        conn.setDoOutput(true);
-
-        try (OutputStream os = conn.getOutputStream()) {
-            byte[] input = requestBody.getBytes("utf-8");
-            os.write(input, 0, input.length);
-        }
-
-        StringBuilder response = new StringBuilder();
-        String responseLine;
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))){
-            while((responseLine = br.readLine()) != null){
-                response.append(responseLine);
-            }
-        }
-        conn.disconnect();
-
-        return parseLocationsDetail(response.toString());
-    }
-
-    private MapDetailResponse getLocationDetail(String requestUrl) throws IOException, ParseException {
-        URL url = new URL(requestUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Content-Type","application/json");
-        conn.setRequestProperty("X-Goog-Api-key",API_KEY);
-        conn.setRequestProperty("X-Goog-FieldMask","displayName,formattedAddress,id,photos,currentOpeningHours");
-        conn.setDoInput(true);
-
-        StringBuilder response = new StringBuilder();
-        String responseLine;
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))){
-            while((responseLine = br.readLine()) != null){
-                response.append(responseLine);
-            }
-        }
-        conn.disconnect();
-
-        return parseLocationDetail(response.toString());
-    }
-
-    private List<MapResponse> parseLocationsDetail(String result) throws ParseException, IOException {
-//        System.out.println(result);
-        if(result.equals("{}")){
-            throw new CustomException(ErrorCode.NOT_FOUND_MAP_RESULT);
-        }
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) parser.parse(result);
-        JSONArray locations = (JSONArray) jsonObject.get("places");
-        List<MapResponse> mapResponses = new ArrayList<>();
-        for(Object object: locations){
-            JSONObject location = (JSONObject) object;
-            Map<String, String> coords = geocodingUtil.getCoordsByAddress((String)location.get("formattedAddress"));
-            JSONObject displayName = (JSONObject) location.get("displayName");
-
-            // photo
-            JSONArray photos = (JSONArray) location.get("photos");
-            String locationPhoto = "none";
-            if(photos != null){
-                JSONObject photo = (JSONObject) photos.get(0);
-                locationPhoto = getLocationPhotoUrl((String)photo.get("name"));
-            }
-
-            MapResponse mapResponse = MapResponse.builder()
-                    .locationName((String)displayName.get("text"))
-                    .locationAddress((String)location.get("formattedAddress"))
-                    .locationId((String)location.get("id"))
-                    .latitude(coords.get("lat"))
-                    .longitude(coords.get("lng"))
-                    .locationPhoto(locationPhoto)
-                    .build();
-            mapResponses.add(mapResponse);
-        }
-        return mapResponses;
-    }
-
-    private MapDetailResponse parseLocationDetail(String result) throws ParseException, IOException {
-//        System.out.println(result);
-        JSONParser parser = new JSONParser();
-        JSONObject location = (JSONObject) parser.parse(result);
-        JSONObject name = (JSONObject) location.get("displayName");
-        JSONArray photos = (JSONArray) location.get("photos");
-        JSONObject photo = (JSONObject) photos.get(0);
-        return MapDetailResponse.builder()
-                .locationName((String)name.get("text"))
-                .locationPhotos(getLocationPhotoUrl((String)photo.get("name")))
-                .locationId((String)location.get("id"))
-                .formattedAddress((String)location.get("formattedAddress"))
-                .currentOpeningHours((String)location.get("currentOpeningHours"))
-                .build();
-    }
-
-    private String getLocationPhotoUrl(String photoName) throws IOException, ParseException {
-        String requestUrl = "https://places.googleapis.com/v1/"+photoName+"/media?key="+API_KEY+"&maxHeightPx=400&maxWidthPx=400&skipHttpRedirect=true";
-
-        URL url = new URL(requestUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-
-        StringBuilder response = new StringBuilder();
-        String responseLine;
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))){
-            while((responseLine = br.readLine()) != null){
-                response.append(responseLine);
-            }
-        }
-        conn.disconnect();
-        return parseLocationPhotoUrl(response.toString());
-    }
-
-    private String parseLocationPhotoUrl(String result) throws ParseException {
-//        System.out.println("\n\n"+result);
-        JSONParser parser = new JSONParser();
-        JSONObject photo = (JSONObject) parser.parse(result);
-        return (String) photo.get("photoUri");
     }
 }
 

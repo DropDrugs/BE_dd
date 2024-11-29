@@ -1,4 +1,4 @@
-package drugdrop.BE.common.Util;
+package drugdrop.BE.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,15 +9,14 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class GeocodingResponse {
+public class SearchImageResponse {
 
-    private List<Address> addresses;
+    private List<Item> items;
 
     @Getter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Address {
-        private String x;
-        private String y;
+    public static class Item {
+        private String link;
     }
 }

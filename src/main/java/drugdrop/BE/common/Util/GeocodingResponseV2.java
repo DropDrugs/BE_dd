@@ -9,14 +9,14 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class GeocodingResponse {
+public class GeocodingResponseV2 {
 
-    private List<Address> addresses;
+    private List<Document> documents;
 
     @Getter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Address {
+    public static class Document {
         private String x;
         private String y;
     }
