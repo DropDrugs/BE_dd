@@ -43,7 +43,6 @@ public class MemberService {
     // 유저 이름 변경
     public void changeMemberNickname(Long memberId, String nickname){
         Member member = getMemberOrThrow(memberId);
-        checkNicknameAvailability(nickname);
         member.setNickname(nickname);
         memberRepository.save(member);
     }
