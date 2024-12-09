@@ -55,6 +55,7 @@ public class MemberService {
     }
 
     // 유저 정보 조회
+    @Transactional(readOnly = true)
     public MemberDetailResponse getMemberDetail(Long memberId){
         Member member = getMemberOrThrow(memberId);
         NotificationSetting n = member.getNotificationSetting();
@@ -80,6 +81,7 @@ public class MemberService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<Integer> getOwnedCharacterIndices(Member member) {
         List<Integer> ownedCharsList = new ArrayList<>();
         int ownedChars = member.getOwnedChars();
@@ -128,6 +130,7 @@ public class MemberService {
         pointService.recordPointTransaction(member, TransactionType.CHARACTER_PURCHASE, -200, "none");
     }
 
+    @Transactional(readOnly = true)
     public List<NotificationResponse> getMemberNotificationHistory(Long memberId){
         getMemberOrThrow(memberId);
         return notificationRepository.findAllByMemberId(memberId).stream()

@@ -28,6 +28,7 @@ public class BoardService {
     private final MemberRepository memberRepository;
     private final NotificationService notificationService;
 
+    @Transactional(readOnly = true)
     public List<BoardResponse> getBoard(){
         return boardRepository.findAll().stream().map(b->BoardResponse.builder()
                         .title(b.getTitle())
