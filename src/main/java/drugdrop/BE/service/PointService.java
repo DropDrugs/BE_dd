@@ -69,10 +69,11 @@ public class PointService {
     private boolean checkLocationBadge(Member member, String location){
         if(10 == pointTransactionRepository.countByMemberIdAndLocation(member.getId(), location)) {
             LocationBadge badge = LocationBadge.builder()
-                    .member(member)
                     .location(location)
                     .build();
             locationBadgeRepository.save(badge);
+            member.addLocationBadge(badge);
+            memberRepository.save(member);
             return true;
         }
         return false;

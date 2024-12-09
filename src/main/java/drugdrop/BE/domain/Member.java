@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static drugdrop.BE.domain.Authority.ROLE_USER;
 
 @Entity
@@ -40,10 +43,18 @@ public class Member extends BaseEntity {
     private Integer ownedChars = 1; // bitwise
     @Builder.Default
     private int point = 0;
+
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "notification_setting_id", referencedColumnName = "notification_setting_id")
     @Builder.Default
     private NotificationSetting notificationSetting = new NotificationSetting();
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "member_id", referencedColumnName = "member_id")
+    @Builder.Default
+    private List<LocationBadge> locationBadges = new ArrayList<>();
+
+    public void addLocationBadge(LocationBadge badge){ this.locationBadges.add(badge); }
 
     public void setProviderAccessToken(String token){ this.providerAccessToken = token; }
     public void setSelectedChar(Integer selectedChar){ this.selectedChar = selectedChar; }

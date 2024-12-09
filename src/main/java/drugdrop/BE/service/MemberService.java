@@ -9,7 +9,6 @@ import drugdrop.BE.dto.request.NotificationSettingRequest;
 import drugdrop.BE.dto.response.MemberDetailResponse;
 import drugdrop.BE.dto.response.NotificationResponse;
 import drugdrop.BE.dto.response.NotificationSettingResponse;
-import drugdrop.BE.repository.LocationBadgeRepository;
 import drugdrop.BE.repository.MemberRepository;
 import drugdrop.BE.repository.NotificationRepository;
 import drugdrop.BE.repository.NotificationSettingRepository;
@@ -30,7 +29,6 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final NotificationSettingRepository notificationSettingRepository;
-    private final LocationBadgeRepository locationBadgeRepository;
     private final NotificationRepository notificationRepository;
     private final PointService pointService;
     private final Integer characterCost = 200;
@@ -57,7 +55,9 @@ public class MemberService {
     // 유저 정보 조회
     @Transactional(readOnly = true)
     public MemberDetailResponse getMemberDetail(Long memberId){
-        Member member = getMemberOrThrow(memberId);
+        Member member = memberRepository.findWithDetailsById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_MEMBER));
+
         NotificationSetting n = member.getNotificationSetting();
         NotificationSettingResponse nr = NotificationSettingResponse.builder()
                 .disposal(n.isDisposal())
@@ -66,10 +66,12 @@ public class MemberService {
                 .takeDrug(n.isTakeDrug())
                 .lastIntake(n.isLastIntake())
                 .build();
+
         List<Integer> chars = getOwnedCharacterIndices(member);
-        List<String> badges = locationBadgeRepository.findAllByMemberId(memberId).stream()
+        List<String> badges = member.getLocationBadges().stream()
                 .map(b -> b.getLocation())
                 .collect(Collectors.toList());
+
         return MemberDetailResponse.builder()
                 .nickname(member.getNickname())
                 .email(member.getEmail())
