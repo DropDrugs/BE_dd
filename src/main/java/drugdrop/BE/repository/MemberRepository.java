@@ -2,6 +2,7 @@ package drugdrop.BE.repository;
 
 import drugdrop.BE.common.oauth.OAuthProvider;
 import drugdrop.BE.domain.Member;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -15,4 +16,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByNickname(String nickname);
     Member findByEmailAndOauthProvider(String email,  OAuthProvider provider);
     Member findByOauthIdAndOauthProvider(String sub, OAuthProvider provider);
+
+    @EntityGraph(attributePaths = {"notificationSetting", "locationBadges"})
+    Optional<Member> findWithDetailsById(Long memberId);
 }

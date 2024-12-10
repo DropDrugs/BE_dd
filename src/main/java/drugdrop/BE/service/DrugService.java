@@ -31,6 +31,7 @@ public class DrugService {
     private final NotificationService notificationService;
     private final String[] options = {"takeDrug", "lastIntake"};
 
+    @Transactional(readOnly = true)
     public List<DrugResponse> getDrugs(Long memberId){
         getMemberOrThrow(memberId);
         List<Drug> drugs = drugRepository.findAllByMemberId(memberId);
