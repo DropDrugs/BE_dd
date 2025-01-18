@@ -122,9 +122,10 @@ jobs:
           envs: APP, COMPOSE
           script_stop: true
           script: |
-            sudo docker-compose -f ${{ env.COMPOSE }} down
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drug-drop
-            sudo docker-compose -f ${{ env.COMPOSE }} up -d
+            echo "COMPOSE: $COMPOSE"
+            docker-compose -f $COMPOSE down
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drug-drop
+            docker-compose -f $COMPOSE up -d
 
 
       - name: Remove Github Actions IP from security group
