@@ -123,9 +123,9 @@ jobs:
           script_stop: true
           script: |
             echo "COMPOSE: $COMPOSE"
-            docker-compose -f $COMPOSE down
+            docker compose -f $COMPOSE down
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drug-drop
-            docker-compose -f $COMPOSE up -d
+            docker compose -f $COMPOSE up -d
 
 
       - name: Remove Github Actions IP from security group
